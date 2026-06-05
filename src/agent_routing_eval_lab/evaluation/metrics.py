@@ -3,6 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from statistics import mean
 
+from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
+
+# Fixed, dataset- and policy-independent normalizers derived from the global tool
+# catalog. Using each policy's own max cost/latency made composite scores
+# incomparable across policies (a policy that only picks cheap tools was
+# penalized against its own cheap ceiling). Catalog-wide bounds keep the score
+# comparable across policies and across evaluation runs.
+_MAX_TOOL_COST = max((spec.avg_cost for spec in TOOL_CATALOG.values()), default=1.0) or 1.0
+_MAX_TOOL_LATENCY_MS = max((spec.avg_latency_ms for spec in TOOL_CATALOG.values()), default=1.0) or 1.0
+
 
 @dataclass
 class PolicyMetrics:
@@ -43,10 +53,8 @@ def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> Poli
         else "Support coverage looks sufficient for this candidate policy."
     )
 
-    max_cost = max(float(row["cost"]) for row in rows) or 1.0
-    max_latency = max(float(row["latency_ms"]) for row in rows) or 1.0
-    normalized_cost = avg_cost / max_cost
-    normalized_latency = avg_latency / max_latency
+    normalized_cost = min(avg_cost / _MAX_TOOL_COST, 1.0)
+    normalized_latency = min(avg_latency / _MAX_TOOL_LATENCY_MS, 1.0)
 
     score = 100 * (
         0.40 * success_rate

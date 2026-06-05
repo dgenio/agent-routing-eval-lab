@@ -7,6 +7,17 @@ from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
 
 
 def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
+    if not results:
+        return "\n".join(
+            [
+                "# Agent Routing Evaluation Report",
+                "",
+                f"Generated: {datetime.now(UTC).isoformat()}",
+                "",
+                "_No policies were evaluated, so there is nothing to report._",
+            ]
+        )
+
     ranked = sorted(results, key=lambda item: item.metrics.score, reverse=True)
     winner = ranked[0]
 
