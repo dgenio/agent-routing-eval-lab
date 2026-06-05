@@ -1,0 +1,4 @@
+name: contextweaver_v2
+strategy: bounded-tool-cards
+max_cards: 3
+notes: tighter context budget and stronger policy lookup preference

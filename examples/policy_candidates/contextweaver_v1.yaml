@@ -1,0 +1,3 @@
+name: contextweaver_v1
+strategy: bounded-tool-cards
+max_cards: 4

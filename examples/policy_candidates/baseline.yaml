@@ -1,0 +1,3 @@
+name: baseline
+strategy: naive-keyword-router
+notes: Minimal policy for comparison only.
