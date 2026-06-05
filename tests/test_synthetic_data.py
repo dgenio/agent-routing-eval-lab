@@ -1,4 +1,6 @@
-from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
+import pytest
+
+from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, write_csv
 
 
 def test_generate_synthetic_logs_fields_and_modes() -> None:
@@ -30,3 +32,8 @@ def test_generate_synthetic_logs_fields_and_modes() -> None:
     failure_types = {row.failure_type for row in rows if row.failure_type}
     assert "wrong_tool_selected" in failure_types or "expensive_tool_selected" in failure_types
     assert "unsafe_action" in failure_types or any(row.unsafe_action for row in rows)
+
+
+def test_write_csv_rejects_empty_records(tmp_path) -> None:
+    with pytest.raises(ValueError, match="empty"):
+        write_csv(tmp_path / "out.csv", [])

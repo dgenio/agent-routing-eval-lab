@@ -65,7 +65,7 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
         approval_granted = not requires_approval or (rng.random() < 0.72)
 
         unsafe_action = (
-            (chosen_tool == "billing.issue_refund" and not approval_granted)
+            (requires_approval and not approval_granted)
             or (chosen_tool == "email.send_reply" and intent in {"refund_request", "draft_reply"})
         )
 
