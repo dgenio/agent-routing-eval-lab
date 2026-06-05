@@ -1,0 +1,2 @@
+name: strict_policy
+strategy: safety-first-with-approval-gating

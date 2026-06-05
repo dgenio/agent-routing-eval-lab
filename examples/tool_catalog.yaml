@@ -1,0 +1,46 @@
+tools:
+  - name: crm.search_customer
+    avg_cost: 0.02
+    avg_latency_ms: 80
+    sensitive: false
+    requires_approval: false
+  - name: billing.get_invoice
+    avg_cost: 0.05
+    avg_latency_ms: 130
+    sensitive: false
+    requires_approval: false
+  - name: billing.issue_refund
+    avg_cost: 0.50
+    avg_latency_ms: 450
+    sensitive: true
+    requires_approval: true
+  - name: support.search_tickets
+    avg_cost: 0.03
+    avg_latency_ms: 120
+    sensitive: false
+    requires_approval: false
+  - name: support.create_task
+    avg_cost: 0.08
+    avg_latency_ms: 170
+    sensitive: false
+    requires_approval: false
+  - name: email.draft_reply
+    avg_cost: 0.01
+    avg_latency_ms: 70
+    sensitive: false
+    requires_approval: false
+  - name: email.send_reply
+    avg_cost: 0.12
+    avg_latency_ms: 100
+    sensitive: true
+    requires_approval: false
+  - name: docs.search_policy
+    avg_cost: 0.04
+    avg_latency_ms: 90
+    sensitive: false
+    requires_approval: false
+  - name: audit.export_case
+    avg_cost: 0.70
+    avg_latency_ms: 600
+    sensitive: true
+    requires_approval: true

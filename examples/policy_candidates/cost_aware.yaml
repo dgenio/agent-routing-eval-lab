@@ -1,0 +1,2 @@
+name: cost_aware
+strategy: minimize-cost-under-safety-constraints
