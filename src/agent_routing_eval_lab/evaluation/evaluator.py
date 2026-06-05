@@ -44,6 +44,33 @@ class OfflineEvaluator:
         self.support = Counter((row["intent"], row["chosen_tool"]) for row in logged_rows)
         self.skdr_adapter = SkdrEvalAdapter()
 
+    @staticmethod
+    def _validate_row(row: dict[str, Any], available_tools: list[str]) -> None:
+        """Fail fast with a clear message on malformed logged rows.
+
+        Without this, an empty ``available_tools`` field falls through to
+        ``available_tools[0]`` (IndexError) and unknown tool names blow up on the
+        ``TOOL_CATALOG`` lookups in ``_score_decision`` (KeyError), both with no
+        context about which row was at fault.
+        """
+        request_id = row.get("request_id", "<unknown>")
+        if not available_tools:
+            raise ValueError(
+                f"request {request_id}: 'available_tools' is empty; "
+                "each logged row must list at least one tool"
+            )
+        unknown_available = [tool for tool in available_tools if tool not in TOOL_CATALOG]
+        if unknown_available:
+            raise ValueError(
+                f"request {request_id}: unknown tool(s) {unknown_available} in 'available_tools' "
+                f"are not present in TOOL_CATALOG"
+            )
+        oracle_tool = str(row["oracle_tool"])
+        if oracle_tool not in TOOL_CATALOG:
+            raise ValueError(
+                f"request {request_id}: unknown oracle_tool '{oracle_tool}' is not present in TOOL_CATALOG"
+            )
+
     def _score_decision(self, row: dict[str, Any], candidate_tool: str) -> dict[str, Any]:
         oracle_tool = row["oracle_tool"]
         spec = TOOL_CATALOG[candidate_tool]
@@ -88,7 +115,8 @@ class OfflineEvaluator:
         warnings: list[str] = []
 
         for row in self.logged_rows:
-            available_tools = str(row["available_tools"]).split("|")
+            available_tools = [tool for tool in str(row["available_tools"]).split("|") if tool]
+            self._validate_row(row, available_tools)
             candidate_tool = router.route(
                 query=str(row["user_query"]),
                 intent=str(row["intent"]),

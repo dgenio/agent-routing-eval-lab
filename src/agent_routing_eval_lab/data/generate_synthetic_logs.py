@@ -124,6 +124,11 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
 
 
 def write_csv(path: Path, records: list[DecisionRecord]) -> None:
+    if not records:
+        raise ValueError(
+            "write_csv requires at least one record to infer CSV headers; "
+            "got an empty list (e.g. when --rows is 0)"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=list(records[0].to_dict().keys()))

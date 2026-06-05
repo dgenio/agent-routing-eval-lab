@@ -9,13 +9,13 @@ test:
 >pytest
 
 generate-data:
->$(PYTHON) -m agent_routing_eval_lab.cli generate-data --output /tmp/workspace/dgenio/agent-routing-eval-lab/examples/logged_decisions.sample.csv --rows 300
+>$(PYTHON) -m agent_routing_eval_lab.cli generate-data --output examples/logged_decisions.sample.csv --rows 300
 
 evaluate:
->$(PYTHON) -m agent_routing_eval_lab.cli evaluate --input /tmp/workspace/dgenio/agent-routing-eval-lab/examples/logged_decisions.sample.csv
+>$(PYTHON) -m agent_routing_eval_lab.cli evaluate --input examples/logged_decisions.sample.csv
 
 report:
->$(PYTHON) -m agent_routing_eval_lab.cli report --input /tmp/workspace/dgenio/agent-routing-eval-lab/examples/logged_decisions.sample.csv --output /tmp/workspace/dgenio/agent-routing-eval-lab/reports/example_report.md
+>$(PYTHON) -m agent_routing_eval_lab.cli report --input examples/logged_decisions.sample.csv --output reports/example_report.md
 
 demo:
 >$(PYTHON) -m agent_routing_eval_lab.cli demo

@@ -50,8 +50,8 @@ def cmd_report(args: argparse.Namespace) -> None:
 
 
 def cmd_demo(_: argparse.Namespace) -> None:
-    data_path = Path("/tmp/workspace/dgenio/agent-routing-eval-lab/examples/logged_decisions.sample.csv")
-    report_path = Path("/tmp/workspace/dgenio/agent-routing-eval-lab/reports/example_report.md")
+    data_path = Path("examples/logged_decisions.sample.csv")
+    report_path = Path("reports/example_report.md")
 
     records = generate_synthetic_logs(rows=300, seed=7)
     write_csv(data_path, records)
