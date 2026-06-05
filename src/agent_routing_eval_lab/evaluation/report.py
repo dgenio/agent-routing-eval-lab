@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
@@ -12,7 +12,7 @@ def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
             [
                 "# Agent Routing Evaluation Report",
                 "",
-                f"Generated: {datetime.now(UTC).isoformat()}",
+                f"Generated: {datetime.now(timezone.utc).isoformat()}",
                 "",
                 "_No policies were evaluated, so there is nothing to report._",
             ]
@@ -24,7 +24,7 @@ def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
     lines = [
         "# Agent Routing Evaluation Report",
         "",
-        f"Generated: {datetime.now(UTC).isoformat()}",
+        f"Generated: {datetime.now(timezone.utc).isoformat()}",
         "",
         "## Policy Comparison",
         "",

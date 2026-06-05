@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
@@ -49,7 +49,7 @@ def _logged_policy_choice(rng: random.Random, intent: str, oracle_tool: str, ava
 
 def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionRecord]:
     rng = random.Random(seed)
-    start = datetime(2026, 1, 1, tzinfo=UTC)
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     records: list[DecisionRecord] = []
 
     for idx in range(rows):
