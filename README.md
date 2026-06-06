@@ -32,6 +32,7 @@ See `/docs/architecture.md` for details.
 - [Evaluation Methodology](docs/evaluation_methodology.md) — How metrics are calculated
 - [Consultant Playbook](docs/consultant_playbook.md) — Guidance for enterprise adoption
 - [Glossary](docs/glossary.md) — Definitions of key terms
+- [灵台未央集成指南](docs/ling_integration.md) — 灵的三轴分析路由系统集成
 
 ## Quickstart
 
@@ -61,6 +62,7 @@ Use this lab as a pre-deployment gate before online A/B testing. It helps teams 
 
 - **`skdr-eval`**: wrapped by `src/agent_routing_eval_lab/adapters/skdr_eval_adapter.py` as the evaluation anchor. The adapter is explicit about fallback behavior and emits warnings when native API wiring is unavailable.
 - **`contextweaver`**: demonstrated via bounded tool cards in `src/agent_routing_eval_lab/adapters/contextweaver_adapter.py` and the `ContextWeaverRouter`.
+- **`ling-triage`**: 灵台未央三轴分析路由器，集成在 `src/agent_routing_eval_lab/routing/ling_triage_router.py` 和 `src/agent_routing_eval_lab/adapters/ling_eval_adapter.py`。支持哲学、心理学、综合、编码四轴路由分析。详见 [灵台未央集成指南](docs/ling_integration.md)。
 
 Optional extensions to deterministic flows (e.g., ChainWeaver) or governance layers (e.g., AgentFence / agent-kernel) are noted in docs, but routing evaluation stays the main focus.
 
