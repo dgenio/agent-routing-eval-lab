@@ -1,8 +1,16 @@
 # agent-routing-eval-lab
 
-**Offline evaluation lab for agent routing and tool-selection policies before production.**
+[![Tests](https://github.com/dgenio/agent-routing-eval-lab/actions/workflows/tests.yml/badge.svg)](https://github.com/dgenio/agent-routing-eval-lab/actions/workflows/tests.yml)
+[![Python 3.10-3.12](https://img.shields.io/badge/python-3.10--3.12-blue.svg)](https://github.com/dgenio/agent-routing-eval-lab/blob/main/.github/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Most agent teams tweak prompts, routers, tool catalogs, and policy rules frequently. This lab demonstrates why production changes need offline evaluation first: a new policy can improve one metric while quietly increasing cost, latency, unsafe actions, or unresolved requests.
+**Offline evaluation lab for LLM agent routing, tool selection, and governance before production.**
+
+Most agent teams tweak prompts, routers, tool catalogs, and policy rules frequently. This lab demonstrates why production changes need offline evaluation first: a new policy can improve one metric while quietly increasing cost, latency, unsafe actions, unresolved requests, or weak support coverage.
+
+**Keywords:** agent evaluation, offline evaluation, off-policy evaluation, counterfactual evaluation, LLM agents, tool calling, router evaluation, AI governance, MLOps.
+
+**Suggested repository description:** Offline evaluation lab for LLM agent routing and tool-selection policies: compare routers, costs, safety, failures, and support coverage before production rollout.
 
 ## What this repo demonstrates
 
