@@ -51,6 +51,9 @@ make report
 make demo
 ```
 
+Run `make help` to print the same commands with a short description directly
+from the Makefile.
+
 Command groups:
 
 - **Install**: `make install` upgrades `pip` and installs the project in editable
