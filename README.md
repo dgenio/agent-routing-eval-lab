@@ -24,7 +24,7 @@ flowchart LR
     E --> F[Rollout decision \n hold / revise / canary]
 ```
 
-See `/docs/architecture.md` for details.
+See `/docs/architecture.md` for details. For terminology used throughout the lab, see `/docs/glossary.md`.
 
 ## Quickstart
 
