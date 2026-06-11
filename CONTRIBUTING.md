@@ -38,6 +38,15 @@ Keep claims bounded by what the repo demonstrates:
 - If a change weakens support/coverage assumptions, call that out in docs or the
   generated report rather than hiding the uncertainty.
 
+## Scope Discipline
+
+Before proposing a feature, check [`docs/non-goals.md`](docs/non-goals.md). The
+lab should stay focused on deterministic offline routing evaluation, not live
+agent runtime ownership, hosted dashboards, model gateways, or broad benchmark
+suites. If a proposal intentionally crosses a boundary, open an issue explaining
+the use case, evidence, maintenance cost, and why the need is not better served
+by a sibling tool or integration.
+
 ## Local Commands
 
 These commands are declared by the project `Makefile`:
