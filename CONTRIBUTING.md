@@ -65,6 +65,21 @@ Run only the checks that match your change and your local environment. For
 documentation-only changes, a markdown review plus `git diff --check` is often
 enough before asking for review.
 
+## Backlog Grooming Cadence
+
+Review the open backlog once a month so issues remain actionable for maintainers
+and contributors. During that pass:
+
+- Check for duplicate issues and link related reports before closing or merging
+  them.
+- Make sure every open issue has one priority label and one milestone.
+- Keep high-priority issues explicit about dependencies, blockers, and expected
+  follow-up work.
+- Move exploratory ideas into the future-planning milestone unless they are ready
+  for implementation.
+- Keep epic issues as umbrella trackers with linked child issues or checklist
+  items.
+
 ## Pull Request Checklist
 
 - Keep the change scoped to one contribution area when possible.
