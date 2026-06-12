@@ -1,0 +1,64 @@
+name: Docs gap
+description: Report missing, incorrect, or unclear documentation.
+title: "[docs] "
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Contribution area
+      description: Select the best-fit contribution area.
+      options:
+        - Metrics
+        - Synthetic scenarios
+        - Routers and policies
+        - Reports and charts
+        - Adapters
+        - Docs
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: File path or section that needs attention.
+      placeholder: README.md, docs/architecture.md, or similar
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gap_type
+    attributes:
+      label: Gap type
+      options:
+        - Missing information
+        - Incorrect information
+        - Unclear wording
+        - Outdated information
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current text or behavior
+      description: Quote the current wording or describe what is absent.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_fix
+    attributes:
+      label: Suggested improvement
+      description: Provide the clearest correction or addition you recommend.
+    validations:
+      required: true
+
+  - type: textarea
+    id: claim_impact
+    attributes:
+      label: Claim-discipline impact
+      description: Does this change any claim made in README.md?
+      placeholder: No claim impact, or explain the exact claim and needed updates.
+    validations:
+      required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project docs and contribution guide
+    url: https://github.com/dgenio/agent-routing-eval-lab/blob/main/CONTRIBUTING.md
+    about: Review scope, contribution areas, and claim discipline before filing.
+  - name: Questions and discussion
+    url: https://github.com/dgenio/agent-routing-eval-lab/discussions
+    about: Ask open-ended questions or start a broader design discussion.

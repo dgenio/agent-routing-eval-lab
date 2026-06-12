@@ -65,6 +65,13 @@ Run only the checks that match your change and your local environment. For
 documentation-only changes, a markdown review plus `git diff --check` is often
 enough before asking for review.
 
+## Issue And PR Templates
+
+- Use the issue forms in `.github/ISSUE_TEMPLATE/` to route reports by
+  contribution area.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` when opening a PR. It mirrors the
+  checklist below and includes the README claim-discipline confirmation.
+
 ## Pull Request Checklist
 
 - Keep the change scoped to one contribution area when possible.
