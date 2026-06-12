@@ -39,8 +39,8 @@ Goal: keep evaluator behavior honest, deterministic, and defensible.
 Current state: active foundation work in M1.
 Help wanted here: parsing hardening, deterministic output controls, and integrity checks.
 
-Open issues mapped (17):
-[#2](https://github.com/dgenio/agent-routing-eval-lab/issues/2), [#10](https://github.com/dgenio/agent-routing-eval-lab/issues/10), [#11](https://github.com/dgenio/agent-routing-eval-lab/issues/11), [#14](https://github.com/dgenio/agent-routing-eval-lab/issues/14), [#36](https://github.com/dgenio/agent-routing-eval-lab/issues/36), [#41](https://github.com/dgenio/agent-routing-eval-lab/issues/41), [#62](https://github.com/dgenio/agent-routing-eval-lab/issues/62), [#70](https://github.com/dgenio/agent-routing-eval-lab/issues/70), [#71](https://github.com/dgenio/agent-routing-eval-lab/issues/71), [#72](https://github.com/dgenio/agent-routing-eval-lab/issues/72), [#75](https://github.com/dgenio/agent-routing-eval-lab/issues/75), [#83](https://github.com/dgenio/agent-routing-eval-lab/issues/83), [#84](https://github.com/dgenio/agent-routing-eval-lab/issues/84), [#88](https://github.com/dgenio/agent-routing-eval-lab/issues/88), [#103](https://github.com/dgenio/agent-routing-eval-lab/issues/103), [#112](https://github.com/dgenio/agent-routing-eval-lab/issues/112), [#125](https://github.com/dgenio/agent-routing-eval-lab/issues/125)
+Open issues mapped (16):
+[#2](https://github.com/dgenio/agent-routing-eval-lab/issues/2), [#10](https://github.com/dgenio/agent-routing-eval-lab/issues/10), [#11](https://github.com/dgenio/agent-routing-eval-lab/issues/11), [#14](https://github.com/dgenio/agent-routing-eval-lab/issues/14), [#36](https://github.com/dgenio/agent-routing-eval-lab/issues/36), [#41](https://github.com/dgenio/agent-routing-eval-lab/issues/41), [#62](https://github.com/dgenio/agent-routing-eval-lab/issues/62), [#70](https://github.com/dgenio/agent-routing-eval-lab/issues/70), [#71](https://github.com/dgenio/agent-routing-eval-lab/issues/71), [#72](https://github.com/dgenio/agent-routing-eval-lab/issues/72), [#75](https://github.com/dgenio/agent-routing-eval-lab/issues/75), [#83](https://github.com/dgenio/agent-routing-eval-lab/issues/83), [#84](https://github.com/dgenio/agent-routing-eval-lab/issues/84), [#88](https://github.com/dgenio/agent-routing-eval-lab/issues/88), [#112](https://github.com/dgenio/agent-routing-eval-lab/issues/112), [#125](https://github.com/dgenio/agent-routing-eval-lab/issues/125)
 
 ## Theme 2: Unsafe -> governed narrative
 
@@ -80,7 +80,7 @@ Open issues mapped (12):
 
 ## Coverage accounting
 
-- Open issues in snapshot: 103
-- Issues linked in this roadmap: 103
+- Open issues in snapshot: 102
+- Issues linked in this roadmap: 102
 - Coverage: 100%
 - Acceptance target from issue #103: >=90%
