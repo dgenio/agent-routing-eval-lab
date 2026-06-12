@@ -126,7 +126,7 @@
 
 **Definition:** A warning emitted when the historical data contains too few examples of a specific `(intent, chosen_tool)` pair to make reliable statistical inferences. Low support means the evaluation results may be unreliable.
 
-**Threshold:** In this lab, support warnings trigger when the count of historical matches falls below a configurable threshold (default: 10).
+**Threshold:** In this lab, support warnings trigger when the count of historical matches falls below a configurable threshold (default: 5).
 
 **Example:** If only 2 logged decisions match the pattern `(intent="refund_request", tool="manual_review")`, the support warning will flag this as statistically unreliable.
 
