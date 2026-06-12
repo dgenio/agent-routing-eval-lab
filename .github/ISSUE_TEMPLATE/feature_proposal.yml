@@ -48,7 +48,7 @@ body:
     id: evidence
     attributes:
       label: Evidence and constraints
-      description: Include data, examples, non-goals boundaries, or tradeoffs.
+      description: Include data, examples, scope boundaries from docs/non-goals.md, or tradeoffs.
       placeholder: Links, measurements, and known risks.
     validations:
       required: true
