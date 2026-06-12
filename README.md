@@ -32,7 +32,6 @@ See `/docs/architecture.md` for details.
 - [Evaluation Methodology](docs/evaluation_methodology.md) — How metrics are calculated
 - [Consultant Playbook](docs/consultant_playbook.md) — Guidance for enterprise adoption
 - [Glossary](docs/glossary.md) — Definitions of key terms
-- [灵台未央集成指南](docs/ling_integration.md) — 灵的三轴分析路由系统集成
 
 ## Quickstart
 
