@@ -26,6 +26,13 @@ flowchart LR
 
 See `/docs/architecture.md` for details.
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — System design and data flow
+- [Evaluation Methodology](docs/evaluation_methodology.md) — How metrics are calculated
+- [Consultant Playbook](docs/consultant_playbook.md) — Guidance for enterprise adoption
+- [Glossary](docs/glossary.md) — Definitions of key terms
+
 ## Quickstart
 
 ```bash
@@ -73,3 +80,6 @@ Optional extensions to deterministic flows (e.g., ChainWeaver) or governance lay
 - Offline evaluation cannot replace online experiments
 - Still requires red-teaming and human review for high-risk actions
 - Counterfactual estimates are sensitive to support/coverage in logs
+
+See [`docs/non-goals.md`](docs/non-goals.md) for scope boundaries that keep the
+lab focused on offline routing evaluation rather than live runtime ownership.
