@@ -26,6 +26,13 @@ flowchart LR
 
 See `/docs/architecture.md` for details.
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — System design and data flow
+- [Evaluation Methodology](docs/evaluation_methodology.md) — How metrics are calculated
+- [Consultant Playbook](docs/consultant_playbook.md) — Guidance for enterprise adoption
+- [Glossary](docs/glossary.md) — Definitions of key terms
+
 ## Quickstart
 
 ```bash
