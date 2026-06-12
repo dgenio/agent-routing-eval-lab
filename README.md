@@ -32,6 +32,7 @@ See `/docs/architecture.md` for details.
 - [Evaluation Methodology](docs/evaluation_methodology.md) — How metrics are calculated
 - [Consultant Playbook](docs/consultant_playbook.md) — Guidance for enterprise adoption
 - [Glossary](docs/glossary.md) — Definitions of key terms
+- [Roadmap](ROADMAP.md) — Backlog themes, sequencing, and contributor entry points
 
 ## Quickstart
 

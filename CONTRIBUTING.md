@@ -83,6 +83,8 @@ enough before asking for review.
   contribution area.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` when opening a PR. It mirrors the
   checklist below and includes the README claim-discipline confirmation.
+- Use [`ROADMAP.md`](ROADMAP.md) for the current theme map, sequencing, and
+  contribution entry points across the open backlog.
 
 ## Backlog Grooming Cadence
 
