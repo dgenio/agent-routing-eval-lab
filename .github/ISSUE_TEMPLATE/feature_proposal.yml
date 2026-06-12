@@ -1,0 +1,63 @@
+name: Feature proposal
+description: Propose a focused improvement aligned with one contribution area.
+title: "[feature] "
+body:
+  - type: dropdown
+    id: proposal_kind
+    attributes:
+      label: Proposal kind
+      options:
+        - Feature proposal
+        - New router or policy
+        - New metric
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Contribution area
+      description: Match this to the contribution areas in CONTRIBUTING.md.
+      options:
+        - Metrics
+        - Synthetic scenarios
+        - Routers and policies
+        - Reports and charts
+        - Adapters
+        - Docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user or maintainer problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and constraints
+      description: Include data, examples, scope boundaries from docs/non-goals.md, or tradeoffs.
+      placeholder: Links, measurements, and known risks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: How should reviewers verify this proposal?
+      placeholder: Commands, tests, and expected outcomes.
+    validations:
+      required: true
