@@ -202,6 +202,8 @@ class LingTriageRouter:
         query_lower = query.lower()
         best_match = None
         best_score = 0.0
+        best_has_keyword = False
+        best_has_pattern = False
 
         for pattern in self.intent_patterns:
             score = 0.0
@@ -212,8 +214,10 @@ class LingTriageRouter:
                 score += keyword_matches * 0.3
 
             # 正则模式匹配
+            pattern_match_count = 0
             for regex in pattern.patterns:
                 if re.search(regex, query, re.IGNORECASE):
+                    pattern_match_count += 1
                     score += 0.5
 
             # 优先级加权
@@ -222,27 +226,15 @@ class LingTriageRouter:
             if score > best_score:
                 best_score = score
                 best_match = pattern.name
+                best_has_keyword = keyword_matches > 0
+                best_has_pattern = pattern_match_count > 0
 
-        # 默认为直接回答
         # 如果没有关键词或模式匹配，直接返回直接回答
         if best_match is None or best_score < 0.3:
             return "direct_answer", 0.5
 
         # 如果只有优先级加权（没有关键词或模式匹配），也返回直接回答
-        # 检查是否有实际的关键词或模式匹配
-        has_keyword_match = False
-        has_pattern_match = False
-        for pattern in self.intent_patterns:
-            if pattern.name == best_match:
-                keyword_matches = sum(1 for kw in pattern.keywords if kw in query_lower)
-                if keyword_matches > 0:
-                    has_keyword_match = True
-                for regex in pattern.patterns:
-                    if re.search(regex, query, re.IGNORECASE):
-                        has_pattern_match = True
-                break
-
-        if not has_keyword_match and not has_pattern_match:
+        if not best_has_keyword and not best_has_pattern:
             return "direct_answer", 0.5
 
         return best_match, min(best_score, 1.0)

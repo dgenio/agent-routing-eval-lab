@@ -27,7 +27,7 @@ from __future__ import annotations
 import csv
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +43,7 @@ class LingDecisionLogger:
     def _get_log_file(self) -> Path:
         """获取当前日志文件路径"""
         # 按日期分文件
-        now = datetime.now(timezone(timedelta(hours=8)))
+        now = datetime.now(timezone.utc)
         date_str = now.strftime("%Y-%m-%d")
         return self.log_dir / f"ling_decisions_{date_str}.csv"
 
@@ -118,7 +118,7 @@ class LingDecisionLogger:
         request_id = str(uuid.uuid4())[:8]
 
         # 获取时间戳
-        now = datetime.now(timezone(timedelta(hours=8)))
+        now = datetime.now(timezone.utc)
         timestamp = now.isoformat()
 
         # 转换工具列表为管道符分隔的字符串
