@@ -1,7 +1,14 @@
 name: Bug report
 description: Report a reproducible bug in the offline evaluation lab.
 title: "[bug] "
+labels:
+  - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep the lab reliable. Before filing, please search
+        open issues for duplicates and avoid sharing private production data.
   - type: dropdown
     id: area
     attributes:
@@ -16,7 +23,6 @@ body:
         - Docs
     validations:
       required: true
-
   - type: textarea
     id: expected_actual
     attributes:
@@ -27,7 +33,6 @@ body:
         Actual:
     validations:
       required: true
-
   - type: textarea
     id: steps
     attributes:
@@ -39,7 +44,6 @@ body:
         3.
     validations:
       required: true
-
   - type: textarea
     id: commands
     attributes:
@@ -50,12 +54,19 @@ body:
         make evaluate
     validations:
       required: true
-
-  - type: input
-    id: python_version
+  - type: textarea
+    id: impact
     attributes:
-      label: Python version
-      description: "Example: 3.12.7"
-      placeholder: 3.12.x
+      label: Impact
+      description: Which workflow is blocked or misleading?
+      placeholder: This affects report generation, policy comparison, or contributor setup because...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, OS, and package version or commit SHA.
+      placeholder: Python 3.12 on Windows, commit abc123
     validations:
       required: true
