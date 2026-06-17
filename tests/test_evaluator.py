@@ -1,3 +1,5 @@
+import csv
+
 import pytest
 
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
@@ -70,4 +72,18 @@ def test_load_logged_decisions_rejects_missing_required_columns(tmp_path) -> Non
     path.write_text("request_id,user_query\nr1,q\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="missing required column"):
+        load_logged_decisions(path)
+
+
+def test_load_logged_decisions_rejects_invalid_boolean_values(tmp_path) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row["success"] = "maybe"
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match="invalid boolean value"):
         load_logged_decisions(path)

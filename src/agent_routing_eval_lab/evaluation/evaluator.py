@@ -34,8 +34,13 @@ class PolicyEvaluationResult:
     warnings: list[str]
 
 
-def _parse_bool(value: str) -> bool:
-    return value.lower() in {"1", "true", "yes"}
+def _parse_bool(value: str, *, column: str, request_id: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y"}:
+        return True
+    if normalized in {"0", "false", "no", "n", ""}:
+        return False
+    raise ValueError(f"request {request_id}: invalid boolean value '{value}' in '{column}'")
 
 
 def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
@@ -47,12 +52,17 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
             missing = ", ".join(sorted(missing_columns))
             raise ValueError(f"logged decisions CSV is missing required column(s): {missing}")
         for row in reader:
-            row["success"] = _parse_bool(str(row["success"]))
+            request_id = str(row.get("request_id", "<unknown>"))
+            row["success"] = _parse_bool(str(row["success"]), column="success", request_id=request_id)
             row["cost"] = float(row["cost"])
             row["latency_ms"] = int(float(row["latency_ms"]))
-            row["requires_approval"] = _parse_bool(str(row["requires_approval"]))
-            row["approval_granted"] = _parse_bool(str(row["approval_granted"]))
-            row["unsafe_action"] = _parse_bool(str(row["unsafe_action"]))
+            row["requires_approval"] = _parse_bool(
+                str(row["requires_approval"]), column="requires_approval", request_id=request_id
+            )
+            row["approval_granted"] = _parse_bool(
+                str(row["approval_granted"]), column="approval_granted", request_id=request_id
+            )
+            row["unsafe_action"] = _parse_bool(str(row["unsafe_action"]), column="unsafe_action", request_id=request_id)
             rows.append(row)
     return rows
 
