@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, write_csv
+from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, positive_int, write_csv
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions
 from agent_routing_eval_lab.evaluation.report import write_markdown_report
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     generate = sub.add_parser("generate-data", help="Generate synthetic decision logs")
     generate.add_argument("--output", type=Path, required=True)
-    generate.add_argument("--rows", type=int, default=300)
+    generate.add_argument("--rows", type=positive_int, default=300)
     generate.add_argument("--seed", type=int, default=7)
     generate.set_defaults(func=cmd_generate_data)
 

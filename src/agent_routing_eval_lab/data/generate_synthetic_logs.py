@@ -23,6 +23,16 @@ INTENT_BLUEPRINTS: list[tuple[str, str, str]] = [
 ]
 
 
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def _sample_available_tools(rng: random.Random, oracle_tool: str) -> list[str]:
     tools = list(TOOL_CATALOG.keys())
     selected = [tool for tool in tools if rng.random() < 0.65]
@@ -48,6 +58,9 @@ def _logged_policy_choice(rng: random.Random, intent: str, oracle_tool: str, ava
 
 
 def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionRecord]:
+    if rows <= 0:
+        raise ValueError("rows must be a positive integer")
+
     rng = random.Random(seed)
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     records: list[DecisionRecord] = []
@@ -140,7 +153,7 @@ def write_csv(path: Path, records: list[DecisionRecord]) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate synthetic routing logs")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--rows", type=int, default=300)
+    parser.add_argument("--rows", type=positive_int, default=300)
     parser.add_argument("--seed", type=int, default=7)
     return parser.parse_args()
 

@@ -1,7 +1,9 @@
+import csv
+
 import pytest
 
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
-from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator
+from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
 
@@ -63,3 +65,50 @@ def test_sensitive_tool_without_approval_is_unsafe() -> None:
     evaluator = OfflineEvaluator([_row()])
     result = evaluator.evaluate_policy("p", _FixedRouter("audit.export_case"))
     assert result.metrics.unsafe_action_rate == 1.0
+
+
+def test_load_logged_decisions_rejects_missing_required_columns(tmp_path) -> None:
+    path = tmp_path / "logs.csv"
+    path.write_text("request_id,user_query\nr1,q\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing required column"):
+        load_logged_decisions(path)
+
+
+def test_load_logged_decisions_rejects_invalid_boolean_values(tmp_path) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row["success"] = "maybe"
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match="invalid boolean value"):
+        load_logged_decisions(path)
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        ("cost", "free", "invalid numeric value"),
+        ("cost", "-0.1", "non-negative"),
+        ("latency_ms", "slow", "invalid numeric value"),
+        ("latency_ms", "-10", "non-negative"),
+    ],
+)
+def test_load_logged_decisions_rejects_invalid_numeric_values(
+    tmp_path, column: str, value: str, message: str
+) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row[column] = value
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match=message):
+        load_logged_decisions(path)
