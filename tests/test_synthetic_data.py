@@ -1,5 +1,6 @@
 import pytest
 
+from agent_routing_eval_lab.cli import build_parser
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, write_csv
 
 
@@ -43,3 +44,11 @@ def test_write_csv_rejects_empty_records(tmp_path) -> None:
 def test_generate_synthetic_logs_rejects_non_positive_rows(rows: int) -> None:
     with pytest.raises(ValueError, match="positive integer"):
         generate_synthetic_logs(rows=rows)
+
+
+@pytest.mark.parametrize("rows", ["0", "-3", "many"])
+def test_generate_data_cli_rejects_invalid_row_counts(rows: str, tmp_path) -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["generate-data", "--output", str(tmp_path / "out.csv"), "--rows", rows])
