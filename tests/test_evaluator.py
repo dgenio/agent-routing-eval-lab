@@ -1,7 +1,7 @@
 import pytest
 
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
-from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator
+from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
 
@@ -63,3 +63,11 @@ def test_sensitive_tool_without_approval_is_unsafe() -> None:
     evaluator = OfflineEvaluator([_row()])
     result = evaluator.evaluate_policy("p", _FixedRouter("audit.export_case"))
     assert result.metrics.unsafe_action_rate == 1.0
+
+
+def test_load_logged_decisions_rejects_missing_required_columns(tmp_path) -> None:
+    path = tmp_path / "logs.csv"
+    path.write_text("request_id,user_query\nr1,q\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing required column"):
+        load_logged_decisions(path)

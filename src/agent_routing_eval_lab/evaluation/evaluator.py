@@ -11,6 +11,22 @@ from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.metrics import PolicyMetrics, compute_policy_metrics
 
 
+REQUIRED_LOG_COLUMNS = {
+    "request_id",
+    "user_query",
+    "intent",
+    "available_tools",
+    "chosen_tool",
+    "oracle_tool",
+    "success",
+    "cost",
+    "latency_ms",
+    "requires_approval",
+    "approval_granted",
+    "unsafe_action",
+}
+
+
 @dataclass
 class PolicyEvaluationResult:
     policy_name: str
@@ -26,6 +42,10 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
+        missing_columns = REQUIRED_LOG_COLUMNS - set(reader.fieldnames or [])
+        if missing_columns:
+            missing = ", ".join(sorted(missing_columns))
+            raise ValueError(f"logged decisions CSV is missing required column(s): {missing}")
         for row in reader:
             row["success"] = _parse_bool(str(row["success"]))
             row["cost"] = float(row["cost"])
