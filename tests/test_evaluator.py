@@ -87,3 +87,28 @@ def test_load_logged_decisions_rejects_invalid_boolean_values(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="invalid boolean value"):
         load_logged_decisions(path)
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        ("cost", "free", "invalid numeric value"),
+        ("cost", "-0.1", "non-negative"),
+        ("latency_ms", "slow", "invalid numeric value"),
+        ("latency_ms", "-10", "non-negative"),
+    ],
+)
+def test_load_logged_decisions_rejects_invalid_numeric_values(
+    tmp_path, column: str, value: str, message: str
+) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row[column] = value
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match=message):
+        load_logged_decisions(path)

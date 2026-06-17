@@ -43,6 +43,21 @@ def _parse_bool(value: str, *, column: str, request_id: str) -> bool:
     raise ValueError(f"request {request_id}: invalid boolean value '{value}' in '{column}'")
 
 
+def _parse_non_negative_float(value: str, *, column: str, request_id: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise ValueError(f"request {request_id}: invalid numeric value '{value}' in '{column}'") from exc
+    if parsed < 0:
+        raise ValueError(f"request {request_id}: '{column}' must be non-negative")
+    return parsed
+
+
+def _parse_non_negative_int(value: str, *, column: str, request_id: str) -> int:
+    parsed = _parse_non_negative_float(value, column=column, request_id=request_id)
+    return int(parsed)
+
+
 def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as file:
@@ -54,8 +69,8 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
         for row in reader:
             request_id = str(row.get("request_id", "<unknown>"))
             row["success"] = _parse_bool(str(row["success"]), column="success", request_id=request_id)
-            row["cost"] = float(row["cost"])
-            row["latency_ms"] = int(float(row["latency_ms"]))
+            row["cost"] = _parse_non_negative_float(str(row["cost"]), column="cost", request_id=request_id)
+            row["latency_ms"] = _parse_non_negative_int(str(row["latency_ms"]), column="latency_ms", request_id=request_id)
             row["requires_approval"] = _parse_bool(
                 str(row["requires_approval"]), column="requires_approval", request_id=request_id
             )
