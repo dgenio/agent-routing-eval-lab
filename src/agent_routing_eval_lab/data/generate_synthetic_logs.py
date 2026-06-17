@@ -48,6 +48,9 @@ def _logged_policy_choice(rng: random.Random, intent: str, oracle_tool: str, ava
 
 
 def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionRecord]:
+    if rows <= 0:
+        raise ValueError("rows must be a positive integer")
+
     rng = random.Random(seed)
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     records: list[DecisionRecord] = []
