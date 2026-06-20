@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +32,11 @@ class PolicyEvaluationResult:
     policy_name: str
     metrics: PolicyMetrics
     warnings: list[str]
+    # Per-decision scoring rows produced while evaluating the policy. Exposed so
+    # callers can drill into individual decisions (``compare``/``--dump-decisions``)
+    # without re-running the evaluator. Defaults to an empty list to keep existing
+    # positional/keyword constructors working.
+    scored_rows: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _parse_bool(value: str, *, column: str, request_id: str) -> bool:
@@ -142,6 +147,7 @@ class OfflineEvaluator:
 
         return {
             "request_id": row["request_id"],
+            "intent": row["intent"],
             "candidate_tool": candidate_tool,
             "oracle_tool": oracle_tool,
             "cost": spec.avg_cost,
@@ -182,7 +188,9 @@ class OfflineEvaluator:
         skdr_summary = self.skdr_adapter.summarize(scored_rows)
         warnings.extend(skdr_summary.warnings)
 
-        return PolicyEvaluationResult(policy_name=policy_name, metrics=metrics, warnings=warnings)
+        return PolicyEvaluationResult(
+            policy_name=policy_name, metrics=metrics, warnings=warnings, scored_rows=scored_rows
+        )
 
     def evaluate_many(self, policies: dict[str, Any]) -> list[PolicyEvaluationResult]:
         return [self.evaluate_policy(name, router) for name, router in policies.items()]

@@ -25,6 +25,7 @@ class PolicyMetrics:
     unresolved_request_rate: float
     estimated_regret_vs_oracle: float
     support_coverage_warning: str
+    low_support_share: float
     score: float
 
 
@@ -34,7 +35,7 @@ def _ratio(values: list[bool]) -> float:
 
 def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> PolicyMetrics:
     if not rows:
-        return PolicyMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "No rows provided.", 0.0)
+        return PolicyMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "No rows provided.", 0.0, 0.0)
 
     success_rate = _ratio([bool(row["success"]) for row in rows])
     correct_tool_rate = _ratio([row["candidate_tool"] == row["oracle_tool"] for row in rows])
@@ -75,5 +76,6 @@ def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> Poli
         unresolved_request_rate=unresolved_rate,
         estimated_regret_vs_oracle=regret,
         support_coverage_warning=coverage_warning,
+        low_support_share=low_support_ratio,
         score=round(score, 3),
     )
