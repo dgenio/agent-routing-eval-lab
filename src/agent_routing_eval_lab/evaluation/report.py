@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
+from agent_routing_eval_lab.io_utils import atomic_write_text
 
 
 def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
@@ -74,5 +75,4 @@ def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
 
 
 def write_markdown_report(path: Path, results: list[PolicyEvaluationResult]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(build_markdown_report(results), encoding="utf-8")
+    atomic_write_text(path, build_markdown_report(results))

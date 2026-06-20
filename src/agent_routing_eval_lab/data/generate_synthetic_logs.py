@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
+from agent_routing_eval_lab.io_utils import atomic_write_csv
 
 
 INTENT_BLUEPRINTS: list[tuple[str, str, str]] = [
@@ -142,12 +142,8 @@ def write_csv(path: Path, records: list[DecisionRecord]) -> None:
             "write_csv requires at least one record to infer CSV headers; "
             "got an empty list (e.g. when --rows is 0)"
         )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=list(records[0].to_dict().keys()))
-        writer.writeheader()
-        for row in records:
-            writer.writerow(row.to_dict())
+    fieldnames = list(records[0].to_dict().keys())
+    atomic_write_csv(path, fieldnames, (record.to_dict() for record in records))
 
 
 def parse_args() -> argparse.Namespace:
