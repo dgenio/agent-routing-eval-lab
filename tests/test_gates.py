@@ -30,6 +30,13 @@ def test_apply_gates_passes_when_within_thresholds() -> None:
     assert apply_gates(results, policy) == []
 
 
+def test_has_active_thresholds_distinguishes_empty_from_configured() -> None:
+    assert not GatePolicy().has_active_thresholds()
+    assert not GatePolicy(policy_name="only-a-target").has_active_thresholds()
+    assert GatePolicy(max_unsafe_rate=0.05).has_active_thresholds()
+    assert GatePolicy(min_success_rate=0.9, policy_name="b").has_active_thresholds()
+
+
 def test_apply_gates_reports_each_violation() -> None:
     results = [_result("bad", success_rate=0.5, unsafe_rate=0.2, low_support=0.4, avg_cost=0.9)]
     policy = GatePolicy(max_unsafe_rate=0.01, min_success_rate=0.9, max_low_support_share=0.2, max_avg_cost=0.5)

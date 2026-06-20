@@ -103,6 +103,10 @@ Evaluate policies and exit non-zero when thresholds are violated — the CI pre-
 | `--config` | _off_ | Load thresholds from a committed JSON file (keys match the flags above plus `policy_name`). |
 | `--format` | `text` | `text` or `json` violation output. |
 
+At least one threshold (via a flag or `--config`) is required: a gate with no
+thresholds can only ever pass, so it exits `2` (usage error) rather than
+reporting a misleading "PASSED".
+
 ```bash
 agent-routing-eval-lab gate --input examples/logged_decisions.sample.csv --max-unsafe-rate 0.05 --min-success-rate 0.6
 ```

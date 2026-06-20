@@ -63,6 +63,31 @@ def _parse_non_negative_int(value: str, *, column: str, request_id: str) -> int:
     return int(parsed)
 
 
+def tool_catalog_row_errors(row: dict[str, Any], available_tools: list[str]) -> list[str]:
+    """Return tool-catalog problems for a single logged row (empty list if valid).
+
+    Single source of truth for the ``available_tools``/``oracle_tool`` rules,
+    shared by the evaluator's fail-fast :meth:`OfflineEvaluator._validate_row`
+    and the collect-all ``validate`` command (issue #60: one implementation, not
+    two). Messages are prefix-free so each caller can add its own row/line
+    context; they retain the ``available_tools`` / ``unknown tool`` /
+    ``oracle_tool`` substrings that callers and tests rely on.
+    """
+    errors: list[str] = []
+    if not available_tools:
+        errors.append("'available_tools' is empty; each logged row must list at least one tool")
+    else:
+        unknown_available = [tool for tool in available_tools if tool not in TOOL_CATALOG]
+        if unknown_available:
+            errors.append(
+                f"unknown tool(s) {unknown_available} in 'available_tools' are not present in TOOL_CATALOG"
+            )
+    oracle_tool = str(row["oracle_tool"])
+    if oracle_tool not in TOOL_CATALOG:
+        errors.append(f"unknown oracle_tool '{oracle_tool}' is not present in TOOL_CATALOG")
+    return errors
+
+
 def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as file:
@@ -101,25 +126,13 @@ class OfflineEvaluator:
         Without this, an empty ``available_tools`` field falls through to
         ``available_tools[0]`` (IndexError) and unknown tool names blow up on the
         ``TOOL_CATALOG`` lookups in ``_score_decision`` (KeyError), both with no
-        context about which row was at fault.
+        context about which row was at fault. Shares :func:`tool_catalog_row_errors`
+        with the ``validate`` command so both paths apply identical rules.
         """
-        request_id = row.get("request_id", "<unknown>")
-        if not available_tools:
-            raise ValueError(
-                f"request {request_id}: 'available_tools' is empty; "
-                "each logged row must list at least one tool"
-            )
-        unknown_available = [tool for tool in available_tools if tool not in TOOL_CATALOG]
-        if unknown_available:
-            raise ValueError(
-                f"request {request_id}: unknown tool(s) {unknown_available} in 'available_tools' "
-                f"are not present in TOOL_CATALOG"
-            )
-        oracle_tool = str(row["oracle_tool"])
-        if oracle_tool not in TOOL_CATALOG:
-            raise ValueError(
-                f"request {request_id}: unknown oracle_tool '{oracle_tool}' is not present in TOOL_CATALOG"
-            )
+        errors = tool_catalog_row_errors(row, available_tools)
+        if errors:
+            request_id = row.get("request_id", "<unknown>")
+            raise ValueError(f"request {request_id}: {errors[0]}")
 
     def _score_decision(self, row: dict[str, Any], candidate_tool: str) -> dict[str, Any]:
         oracle_tool = row["oracle_tool"]

@@ -52,6 +52,12 @@ def test_gate_passes_and_fails_with_documented_exit_codes(capsys, sample_csv) ->
     assert "Gate FAILED" in capsys.readouterr().out
 
 
+def test_gate_without_thresholds_is_usage_error(capsys, sample_csv) -> None:
+    assert main(["gate", "--input", str(sample_csv)]) == EXIT_USAGE
+    err = capsys.readouterr().err
+    assert "at least one threshold" in err
+
+
 def test_gate_unknown_config_key_is_usage_error(capsys, tmp_path, sample_csv) -> None:
     config = tmp_path / "gate.json"
     config.write_text(json.dumps({"bogus": 1}), encoding="utf-8")

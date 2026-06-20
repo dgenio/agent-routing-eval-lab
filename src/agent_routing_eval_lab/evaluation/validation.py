@@ -3,12 +3,12 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.evaluator import (
     REQUIRED_LOG_COLUMNS,
     _parse_bool,
     _parse_non_negative_float,
     _parse_non_negative_int,
+    tool_catalog_row_errors,
 )
 
 _BOOL_COLUMNS = ("success", "requires_approval", "approval_granted", "unsafe_action")
@@ -51,16 +51,8 @@ def validate_logged_decisions(path: Path, *, max_errors: int | None = None) -> l
                 errors.append(f"{prefix}: {exc}")
 
             available_tools = [tool for tool in str(row["available_tools"]).split("|") if tool]
-            if not available_tools:
-                errors.append(f"{prefix}: 'available_tools' is empty; list at least one tool")
-            else:
-                unknown = [tool for tool in available_tools if tool not in TOOL_CATALOG]
-                if unknown:
-                    errors.append(f"{prefix}: unknown tool(s) {unknown} in 'available_tools'")
-
-            oracle_tool = str(row["oracle_tool"])
-            if oracle_tool and oracle_tool not in TOOL_CATALOG:
-                errors.append(f"{prefix}: unknown oracle_tool '{oracle_tool}'")
+            for message in tool_catalog_row_errors(row, available_tools):
+                errors.append(f"{prefix}: {message}")
 
             if max_errors is not None and len(errors) >= max_errors:
                 return errors[:max_errors]

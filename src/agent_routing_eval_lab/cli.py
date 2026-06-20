@@ -155,6 +155,12 @@ def cmd_gate(args: argparse.Namespace) -> int:
             max_avg_cost=args.max_avg_cost,
             policy_name=args.policy_name,
         )
+    if not policy.has_active_thresholds():
+        raise ValueError(
+            "gate requires at least one threshold "
+            "(e.g. --max-unsafe-rate, --min-success-rate, --max-low-support-share, --max-avg-cost) "
+            "or a --config file that sets one; a gate with no thresholds always passes"
+        )
     violations = apply_gates(results, policy)
 
     if args.format == "json":

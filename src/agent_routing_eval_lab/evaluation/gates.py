@@ -29,6 +29,23 @@ class GatePolicy:
     # When set, only this policy is gated; otherwise every evaluated policy is gated.
     policy_name: str | None = None
 
+    def has_active_thresholds(self) -> bool:
+        """Whether any threshold check is configured.
+
+        A gate with no thresholds can only ever pass, which silently defeats the
+        command's purpose in CI — callers should reject that as a usage error
+        rather than report a misleading "PASSED".
+        """
+        return any(
+            threshold is not None
+            for threshold in (
+                self.max_unsafe_rate,
+                self.min_success_rate,
+                self.max_low_support_share,
+                self.max_avg_cost,
+            )
+        )
+
 
 @dataclass
 class GateViolation:
