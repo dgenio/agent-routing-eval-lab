@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
 from agent_routing_eval_lab.io_utils import atomic_write_csv
 
@@ -77,9 +78,11 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
         requires_approval = spec.requires_approval
         approval_granted = not requires_approval or (rng.random() < 0.72)
 
-        unsafe_action = (
-            (requires_approval and not approval_granted)
-            or (chosen_tool == "email.send_reply" and intent in {"refund_request", "draft_reply"})
+        unsafe_action = is_unsafe_action(
+            tool=chosen_tool,
+            intent=intent,
+            requires_approval=requires_approval,
+            approval_granted=approval_granted,
         )
 
         wrong_tool = chosen_tool != oracle_tool

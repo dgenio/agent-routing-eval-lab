@@ -29,7 +29,7 @@ def test_evaluate_text_is_default(capsys, sample_csv) -> None:
 def test_evaluate_json_emits_valid_json(capsys, sample_csv) -> None:
     assert main(["evaluate", "--input", str(sample_csv), "--format", "json"]) == EXIT_OK
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema_version"] == "1"
+    assert payload["schema_version"] == "2"
     assert payload["row_count"] == 120
 
 

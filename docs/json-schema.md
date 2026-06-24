@@ -8,7 +8,7 @@ dashboards, and downstream scripts can rely on.
 
 ```json
 {
-  "schema_version": "1",
+  "schema_version": "2",
   "input_path": "examples/logged_decisions.sample.csv",
   "row_count": 300,
   "winner": "contextweaver_v1",
@@ -27,9 +27,12 @@ dashboards, and downstream scripts can rely on.
         "estimated_regret_vs_oracle": 0.319,
         "support_coverage_warning": "…",
         "low_support_share": 0.12,
+        "low_support": false,
         "score": 83.41
       },
-      "warnings": ["…"]
+      "warnings": [
+        {"code": "coverage.low_support", "severity": "warning", "message": "…"}
+      ]
     }
   ]
 }
@@ -47,14 +50,14 @@ dashboards, and downstream scripts can rely on.
 | `policies` | object[] | One entry per policy, in ranking order. |
 | `policies[].policy_name` | string | Policy identifier. |
 | `policies[].metrics` | object | All fields of `PolicyMetrics` (see `evaluation/metrics.py`). |
-| `policies[].warnings` | string[] | Diagnostics raised for the policy. |
+| `policies[].warnings` | object[] | Structured diagnostics: `{code, severity, message}`. `severity` is one of `info`, `warning`, `error`. |
 
 Per-decision rows are intentionally **not** in this payload; use
 `evaluate --dump-decisions DIR` for that (see [input-schema.md](input-schema.md)).
 
 ## Stability policy
 
-The shape is versioned via `schema_version` (currently `"1"`):
+The shape is versioned via `schema_version` (currently `"2"`):
 
 - **Additive** changes (new keys) do **not** bump the version.
 - **Renaming or removing** a key, or changing a value's type, is a breaking

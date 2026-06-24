@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
+from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult, rank_results
 
 
 def ascii_score_chart(results: list[PolicyEvaluationResult]) -> str:
-    ranked = sorted(results, key=lambda result: result.metrics.score, reverse=True)
+    ranked = rank_results(results)
     lines = ["Policy score chart"]
     for result in ranked:
         width = max(1, int(result.metrics.score / 2))

@@ -5,12 +5,15 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
+from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult, rank_results
 
 # Bump this whenever the JSON shape changes in a backward-incompatible way
 # (renamed/removed fields). Additive fields do not require a bump. See
 # docs/json-schema.md for the stability policy.
-SCHEMA_VERSION = "1"
+#
+# "2": warnings became structured objects ({code, severity, message}) instead of
+#      plain strings (issue #65).
+SCHEMA_VERSION = "2"
 
 
 def results_to_dict(
@@ -25,7 +28,7 @@ def results_to_dict(
     versioned via ``schema_version``. Per-decision ``scored_rows`` are deliberately
     excluded to keep the payload bounded; use ``--dump-decisions`` for those.
     """
-    ranked = sorted(results, key=lambda item: item.metrics.score, reverse=True)
+    ranked = rank_results(results)
     return {
         "schema_version": SCHEMA_VERSION,
         "input_path": str(input_path) if input_path is not None else None,
@@ -36,7 +39,7 @@ def results_to_dict(
             {
                 "policy_name": result.policy_name,
                 "metrics": asdict(result.metrics),
-                "warnings": list(result.warnings),
+                "warnings": [warning.to_dict() for warning in result.warnings],
             }
             for result in ranked
         ],

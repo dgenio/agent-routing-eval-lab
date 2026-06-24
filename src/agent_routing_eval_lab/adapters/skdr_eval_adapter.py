@@ -4,11 +4,13 @@ from dataclasses import dataclass
 from statistics import mean
 from typing import Any
 
+from agent_routing_eval_lab.warnings import EvalWarning
+
 
 @dataclass
 class SkdrAdapterResult:
     summary: dict[str, float]
-    warnings: list[str]
+    warnings: list[EvalWarning]
     used_native_skdr: bool
 
 
@@ -33,10 +35,20 @@ class SkdrEvalAdapter:
             # TODO: Replace placeholder call with official skdr-eval API once stable.
             # We intentionally keep this explicit so behavior is never silently faked.
             warnings = [
-                "skdr-eval detected, but native API wiring is pending. Using local summary fallback for now."
+                EvalWarning(
+                    code="adapter.skdr_pending",
+                    severity="info",
+                    message="skdr-eval detected, but native API wiring is pending. Using local summary fallback for now.",
+                )
             ]
         else:
-            warnings = ["skdr-eval not installed; using local adapter summary fallback."]
+            warnings = [
+                EvalWarning(
+                    code="adapter.skdr_missing",
+                    severity="info",
+                    message="skdr-eval not installed; using local adapter summary fallback.",
+                )
+            ]
 
         summary = {
             "success_rate": mean(float(row["success"]) for row in rows) if rows else 0.0,
