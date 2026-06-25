@@ -2,6 +2,8 @@
 
 **Offline evaluation lab for agent routing and tool-selection policies before production.**
 
+[![Read the Weaver Stack overview on Towards AI](https://img.shields.io/badge/Read_the_overview-Towards_AI-black?logo=medium&logoColor=white)](https://pub.towardsai.net/the-weaver-stack-one-contract-layer-for-safe-llm-agents-7f733cad5eac)
+
 Most agent teams tweak prompts, routers, tool catalogs, and policy rules frequently. This lab demonstrates why production changes need offline evaluation first: a new policy can improve one metric while quietly increasing cost, latency, unsafe actions, or unresolved requests.
 
 ## What this repo demonstrates
