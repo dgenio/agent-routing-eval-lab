@@ -8,6 +8,21 @@ from dataclasses import dataclass
 SEVERITIES = ("info", "warning", "error")
 
 
+class WarningCode:
+    """Stable codes for the diagnostics emitted during evaluation.
+
+    Centralized so emit sites reference a constant instead of repeating the
+    string literal (which drifts silently across files). Codes are dotted
+    ``area.detail`` strings and are part of the JSON contract — see
+    docs/json-schema.md.
+    """
+
+    LOW_SUPPORT = "coverage.low_support"
+    SKDR_PENDING = "adapter.skdr_pending"
+    SKDR_MISSING = "adapter.skdr_missing"
+    UNAVAILABLE_TOOL = "router.unavailable_tool"
+
+
 @dataclass(frozen=True)
 class EvalWarning:
     """A structured diagnostic raised during evaluation.

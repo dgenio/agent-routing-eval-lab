@@ -15,6 +15,21 @@ The evaluator computes:
 - **Support/coverage warning**: warning if many candidate actions have low support in historical logs.
 - **Composite score**: weighted score balancing quality, safety, cost, and latency.
 
+## Decision-time information (leakage guard)
+
+Candidate policies act only on information available at decision time. The
+evaluator hands each router a metadata dict containing **only** decision-time
+context — currently `approval_granted` — and deliberately never includes
+`oracle_tool` (the ground-truth answer). Leaking the oracle would let any router
+(custom or accidental) return it and score a perfect correct-tool rate,
+invalidating every comparison the lab exists to make.
+
+The metadata contract for `Router.route(...)` is documented in
+`agent_routing_eval_lab.routing` and enforced by a regression test
+(`tests/test_evaluator.py::test_routers_never_receive_oracle_tool_metadata`),
+which asserts routers never receive `oracle_tool` and always receive
+`approval_granted`.
+
 ## Utility model and regret
 
 `estimated_regret_vs_oracle` is the mean per-decision gap between the oracle

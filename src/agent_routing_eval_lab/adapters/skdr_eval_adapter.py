@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from statistics import mean
 from typing import Any
 
-from agent_routing_eval_lab.warnings import EvalWarning
+from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
 
 
 @dataclass
@@ -36,7 +36,7 @@ class SkdrEvalAdapter:
             # We intentionally keep this explicit so behavior is never silently faked.
             warnings = [
                 EvalWarning(
-                    code="adapter.skdr_pending",
+                    code=WarningCode.SKDR_PENDING,
                     severity="info",
                     message="skdr-eval detected, but native API wiring is pending. Using local summary fallback for now.",
                 )
@@ -44,7 +44,7 @@ class SkdrEvalAdapter:
         else:
             warnings = [
                 EvalWarning(
-                    code="adapter.skdr_missing",
+                    code=WarningCode.SKDR_MISSING,
                     severity="info",
                     message="skdr-eval not installed; using local adapter summary fallback.",
                 )

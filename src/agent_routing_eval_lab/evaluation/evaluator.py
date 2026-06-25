@@ -10,7 +10,7 @@ from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrEvalAdapter
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.metrics import PolicyMetrics, compute_policy_metrics
-from agent_routing_eval_lab.warnings import EvalWarning
+from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
 
 
 # Coefficients of the per-decision utility model used in ``_score_decision``. The
@@ -240,7 +240,7 @@ class OfflineEvaluator:
             if candidate_tool not in available_tools:
                 warnings.append(
                     EvalWarning(
-                        code="router.unavailable_tool",
+                        code=WarningCode.UNAVAILABLE_TOOL,
                         severity="warning",
                         message=(
                             f"{policy_name}: router selected unavailable tool "
@@ -255,7 +255,7 @@ class OfflineEvaluator:
         if metrics.low_support:
             warnings.append(
                 EvalWarning(
-                    code="coverage.low_support",
+                    code=WarningCode.LOW_SUPPORT,
                     severity="warning",
                     message=metrics.support_coverage_warning,
                 )
