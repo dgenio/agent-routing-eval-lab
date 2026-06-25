@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult
+from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult, rank_results
 from agent_routing_eval_lab.io_utils import atomic_write_text
 
 
@@ -19,7 +19,7 @@ def build_markdown_report(results: list[PolicyEvaluationResult]) -> str:
             ]
         )
 
-    ranked = sorted(results, key=lambda item: item.metrics.score, reverse=True)
+    ranked = rank_results(results)
     winner = ranked[0]
 
     lines = [

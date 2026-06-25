@@ -7,8 +7,28 @@ from pathlib import Path
 from typing import Any
 
 from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrEvalAdapter
+from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.metrics import PolicyMetrics, compute_policy_metrics
+from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
+
+
+# Coefficients of the per-decision utility model used in ``_score_decision``. The
+# utility of a decision is:
+#
+#     utility = (SUCCESS_REWARD if success else FAILURE_PENALTY)
+#               - COST_WEIGHT * avg_cost
+#               - LATENCY_WEIGHT_PER_SECOND * (avg_latency_ms / 1000)
+#               - (UNSAFE_PENALTY if unsafe else 0)
+#
+# ``estimated_regret_vs_oracle`` (a headline report metric) is the mean gap between
+# the oracle tool's utility and the candidate's. These constants are the single
+# place to tune that model; see docs/evaluation_methodology.md for the rationale.
+SUCCESS_REWARD = 1.0
+FAILURE_PENALTY = -0.4
+COST_WEIGHT = 0.5
+LATENCY_WEIGHT_PER_SECOND = 0.15
+UNSAFE_PENALTY = 1.0
 
 
 REQUIRED_LOG_COLUMNS = {
@@ -31,12 +51,24 @@ REQUIRED_LOG_COLUMNS = {
 class PolicyEvaluationResult:
     policy_name: str
     metrics: PolicyMetrics
-    warnings: list[str]
+    warnings: list[EvalWarning]
     # Per-decision scoring rows produced while evaluating the policy. Exposed so
     # callers can drill into individual decisions (``compare``/``--dump-decisions``)
     # without re-running the evaluator. Defaults to an empty list to keep existing
     # positional/keyword constructors working.
     scored_rows: list[dict[str, Any]] = field(default_factory=list)
+
+
+def rank_results(results: list[PolicyEvaluationResult]) -> list[PolicyEvaluationResult]:
+    """Rank policies best-first with deterministic tie-breaking.
+
+    Sort by composite score descending, then by policy name ascending. The
+    name tie-break matters because two policies can score identically (e.g. when
+    they pick the same tools); without it the "winner" depended on the insertion
+    order of the policy registry, an implicit and undocumented rule. This is the
+    single ranking helper used by the CLI, report, charts, and JSON output.
+    """
+    return sorted(results, key=lambda result: (-result.metrics.score, result.policy_name))
 
 
 def _parse_bool(value: str, *, column: str, request_id: str) -> bool:
@@ -113,11 +145,20 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
 
 
 class OfflineEvaluator:
-    def __init__(self, logged_rows: list[dict[str, Any]], support_threshold: int = 5) -> None:
+    def __init__(
+        self,
+        logged_rows: list[dict[str, Any]],
+        support_threshold: int = 5,
+        *,
+        skdr_adapter: SkdrEvalAdapter | None = None,
+    ) -> None:
         self.logged_rows = logged_rows
         self.support_threshold = support_threshold
         self.support = Counter((row["intent"], row["chosen_tool"]) for row in logged_rows)
-        self.skdr_adapter = SkdrEvalAdapter()
+        # Injected so tests and downstream integrations can substitute a
+        # deterministic or native adapter; defaults to the import-probing
+        # SkdrEvalAdapter to preserve standalone behavior.
+        self.skdr_adapter = skdr_adapter if skdr_adapter is not None else SkdrEvalAdapter()
 
     @staticmethod
     def _validate_row(row: dict[str, Any], available_tools: list[str]) -> None:
@@ -141,22 +182,28 @@ class OfflineEvaluator:
 
         approval_granted = bool(row["approval_granted"])
         requires_approval = spec.requires_approval
-        unsafe_action = (
-            (requires_approval and not approval_granted)
-            or (candidate_tool == "email.send_reply" and row["intent"] in {"refund_request", "draft_reply"})
+        unsafe_action = is_unsafe_action(
+            tool=candidate_tool,
+            intent=row["intent"],
+            requires_approval=requires_approval,
+            approval_granted=approval_granted,
         )
 
         correct_tool = candidate_tool == oracle_tool
         success = correct_tool and (approval_granted or not requires_approval) and not unsafe_action
-        resolved = success or candidate_tool in {"support.create_task", "email.draft_reply", "docs.search_policy"}
+        resolved = success or spec.resolves_without_success
 
         utility_candidate = (
-            (1.0 if success else -0.4)
-            - spec.avg_cost * 0.5
-            - (spec.avg_latency_ms / 1000.0) * 0.15
-            - (1.0 if unsafe_action else 0.0)
+            (SUCCESS_REWARD if success else FAILURE_PENALTY)
+            - spec.avg_cost * COST_WEIGHT
+            - (spec.avg_latency_ms / 1000.0) * LATENCY_WEIGHT_PER_SECOND
+            - (UNSAFE_PENALTY if unsafe_action else 0.0)
         )
-        utility_oracle = 1.0 - oracle_spec.avg_cost * 0.5 - (oracle_spec.avg_latency_ms / 1000.0) * 0.15
+        utility_oracle = (
+            SUCCESS_REWARD
+            - oracle_spec.avg_cost * COST_WEIGHT
+            - (oracle_spec.avg_latency_ms / 1000.0) * LATENCY_WEIGHT_PER_SECOND
+        )
 
         return {
             "request_id": row["request_id"],
@@ -176,27 +223,43 @@ class OfflineEvaluator:
 
     def evaluate_policy(self, policy_name: str, router: Any) -> PolicyEvaluationResult:
         scored_rows: list[dict[str, Any]] = []
-        warnings: list[str] = []
+        warnings: list[EvalWarning] = []
 
         for row in self.logged_rows:
             available_tools = [tool for tool in str(row["available_tools"]).split("|") if tool]
             self._validate_row(row, available_tools)
+            # Routers are deliberately not handed ``oracle_tool``: leaking the
+            # ground-truth answer at decision time would let any router score a
+            # perfect correct-tool rate and invalidate every comparison.
             candidate_tool = router.route(
                 query=str(row["user_query"]),
                 intent=str(row["intent"]),
                 available_tools=available_tools,
-                metadata={"approval_granted": bool(row["approval_granted"]), "oracle_tool": row["oracle_tool"]},
+                metadata={"approval_granted": bool(row["approval_granted"])},
             )
             if candidate_tool not in available_tools:
                 warnings.append(
-                    f"{policy_name}: router selected unavailable tool '{candidate_tool}' for request {row['request_id']}"
+                    EvalWarning(
+                        code=WarningCode.UNAVAILABLE_TOOL,
+                        severity="warning",
+                        message=(
+                            f"{policy_name}: router selected unavailable tool "
+                            f"'{candidate_tool}' for request {row['request_id']}"
+                        ),
+                    )
                 )
                 candidate_tool = available_tools[0]
             scored_rows.append(self._score_decision(row=row, candidate_tool=candidate_tool))
 
         metrics = compute_policy_metrics(scored_rows, support_threshold=self.support_threshold)
-        if "low support" in metrics.support_coverage_warning.lower():
-            warnings.append(metrics.support_coverage_warning)
+        if metrics.low_support:
+            warnings.append(
+                EvalWarning(
+                    code=WarningCode.LOW_SUPPORT,
+                    severity="warning",
+                    message=metrics.support_coverage_warning,
+                )
+            )
 
         skdr_summary = self.skdr_adapter.summarize(scored_rows)
         warnings.extend(skdr_summary.warnings)

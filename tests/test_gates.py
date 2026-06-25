@@ -19,6 +19,7 @@ def _result(name: str, *, success_rate: float, unsafe_rate: float, low_support: 
         estimated_regret_vs_oracle=0.0,
         support_coverage_warning="",
         low_support_share=low_support,
+        low_support=low_support > 0.15,
         score=0.0,
     )
     return PolicyEvaluationResult(policy_name=name, metrics=metrics, warnings=[])
