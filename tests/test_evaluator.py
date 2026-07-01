@@ -2,7 +2,9 @@ import csv
 
 import pytest
 
+from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrAdapterResult
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
+from agent_routing_eval_lab.evaluation import evaluator as evaluator_module
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
@@ -112,3 +114,82 @@ def test_load_logged_decisions_rejects_invalid_numeric_values(
 
     with pytest.raises(ValueError, match=message):
         load_logged_decisions(path)
+
+
+class _RecordingRouter:
+    """Router that records the metadata dict it is handed at decision time."""
+
+    def __init__(self) -> None:
+        self.seen_metadata: list[dict] = []
+
+    def route(self, query: str, intent: str, available_tools: list[str], metadata: dict | None = None) -> str:
+        self.seen_metadata.append(dict(metadata or {}))
+        return available_tools[0]
+
+
+def test_routers_never_receive_oracle_tool_metadata() -> None:
+    # Evaluation-leakage guard (#62): the ground-truth oracle_tool must not be
+    # visible to a router, or any router could trivially return it.
+    records = [record.to_dict() for record in generate_synthetic_logs(rows=25, seed=5)]
+    router = _RecordingRouter()
+    OfflineEvaluator(records).evaluate_policy("recording", router)
+
+    assert router.seen_metadata, "router was never invoked"
+    assert all("oracle_tool" not in meta for meta in router.seen_metadata)
+    assert all("approval_granted" in meta for meta in router.seen_metadata)
+
+
+def test_resolves_without_success_is_driven_by_tool_spec() -> None:
+    # docs.search_policy has resolves_without_success=True, so a non-success
+    # decision on it still counts as resolved (#64).
+    row = _row(intent="policy_lookup", oracle_tool="crm.search_customer", available_tools="docs.search_policy|crm.search_customer")
+    scored = OfflineEvaluator([row])._score_decision(row=row, candidate_tool="docs.search_policy")
+    assert scored["success"] is False
+    assert scored["resolved"] is True
+
+    # crm.search_customer does not resolve-without-success: wrong tool -> unresolved.
+    scored_other = OfflineEvaluator([row])._score_decision(row=row, candidate_tool="crm.search_customer")
+    assert scored_other["success"] is True  # matches oracle here
+    row2 = _row(intent="invoice_question", oracle_tool="billing.get_invoice", available_tools="crm.search_customer|billing.get_invoice")
+    scored_wrong = OfflineEvaluator([row2])._score_decision(row=row2, candidate_tool="crm.search_customer")
+    assert scored_wrong["success"] is False
+    assert scored_wrong["resolved"] is False
+
+
+def test_evaluator_uses_injected_adapter() -> None:
+    # Adapter injection (#66): the evaluator must use the adapter it is given
+    # instead of constructing its own.
+    sentinel = evaluator_module.EvalWarning(code="test.injected", severity="info", message="injected adapter ran")
+
+    class _FakeAdapter:
+        def summarize(self, rows):
+            return SkdrAdapterResult(summary={}, warnings=[sentinel], used_native_skdr=False)
+
+    records = [record.to_dict() for record in generate_synthetic_logs(rows=20, seed=6)]
+    evaluator = OfflineEvaluator(records, skdr_adapter=_FakeAdapter())
+    result = evaluator.evaluate_policy("baseline", BaselineRouter())
+
+    assert sentinel in result.warnings
+
+
+def test_oracle_utility_uses_named_constants() -> None:
+    # Utility-model constants (#67): oracle utility is reconstructable from the
+    # named coefficients, and an oracle-matching safe decision has zero regret.
+    from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
+
+    row = _row(
+        intent="customer_lookup",
+        oracle_tool="crm.search_customer",
+        available_tools="crm.search_customer",
+        approval_granted=True,
+    )
+    scored = OfflineEvaluator([row])._score_decision(row=row, candidate_tool="crm.search_customer")
+    spec = TOOL_CATALOG["crm.search_customer"]
+    expected_oracle = (
+        evaluator_module.SUCCESS_REWARD
+        - spec.avg_cost * evaluator_module.COST_WEIGHT
+        - (spec.avg_latency_ms / 1000.0) * evaluator_module.LATENCY_WEIGHT_PER_SECOND
+    )
+    assert scored["utility_oracle"] == pytest.approx(expected_oracle)
+    # Candidate == oracle, safe and successful -> identical utility, zero regret.
+    assert scored["utility_candidate"] == pytest.approx(scored["utility_oracle"])

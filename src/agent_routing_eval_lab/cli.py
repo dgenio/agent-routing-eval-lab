@@ -10,11 +10,12 @@ from pathlib import Path
 from agent_routing_eval_lab import __version__
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, positive_int, write_csv
 from agent_routing_eval_lab.evaluation.diff import DiffResult, compute_decision_diffs
-from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions
+from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions, rank_results
 from agent_routing_eval_lab.evaluation.gates import GatePolicy, apply_gates, load_gate_policy, violations_to_dict
 from agent_routing_eval_lab.evaluation.report import write_markdown_report
 from agent_routing_eval_lab.evaluation.serialization import results_to_json
 from agent_routing_eval_lab.evaluation.validation import validate_logged_decisions
+from agent_routing_eval_lab.warnings import EvalWarning
 from agent_routing_eval_lab.io_utils import atomic_write_csv, atomic_write_text
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
@@ -56,7 +57,7 @@ def _configure_logging(*, verbose: bool, quiet: bool) -> None:
     logger.propagate = False
 
 
-def _emit_warnings(warnings: list[str], *, verbose: bool, limit: int = 3) -> None:
+def _emit_warnings(warnings: list[EvalWarning], *, verbose: bool, limit: int = 3) -> None:
     if not warnings:
         return
     shown = warnings if verbose else warnings[:limit]
@@ -105,7 +106,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         return EXIT_OK
 
     print(ascii_score_chart(results))
-    winner = sorted(results, key=lambda x: x.metrics.score, reverse=True)[0]
+    winner = rank_results(results)[0]
     print(f"Winner: {winner.policy_name} (score={winner.metrics.score:.2f})")
     _emit_warnings(winner.warnings, verbose=args.verbose)
     return EXIT_OK
@@ -131,7 +132,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     _, results = _evaluate(data_path)
     write_markdown_report(report_path, results)
 
-    ranked = sorted(results, key=lambda item: item.metrics.score, reverse=True)
+    ranked = rank_results(results)
     winner = ranked[0]
 
     print(ascii_score_chart(ranked))

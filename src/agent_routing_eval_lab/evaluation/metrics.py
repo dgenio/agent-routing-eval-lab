@@ -13,6 +13,11 @@ from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 _MAX_TOOL_COST = max((spec.avg_cost for spec in TOOL_CATALOG.values()), default=1.0) or 1.0
 _MAX_TOOL_LATENCY_MS = max((spec.avg_latency_ms for spec in TOOL_CATALOG.values()), default=1.0) or 1.0
 
+# Share of low-support decisions above which the offline estimate is flagged as
+# under-supported. Exposed as the structured ``PolicyMetrics.low_support`` flag so
+# consumers test the boolean instead of substring-matching the warning text.
+LOW_SUPPORT_WARN_SHARE = 0.15
+
 
 @dataclass
 class PolicyMetrics:
@@ -26,6 +31,7 @@ class PolicyMetrics:
     estimated_regret_vs_oracle: float
     support_coverage_warning: str
     low_support_share: float
+    low_support: bool
     score: float
 
 
@@ -35,7 +41,7 @@ def _ratio(values: list[bool]) -> float:
 
 def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> PolicyMetrics:
     if not rows:
-        return PolicyMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "No rows provided.", 0.0, 0.0)
+        return PolicyMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "No rows provided.", 0.0, False, 0.0)
 
     success_rate = _ratio([bool(row["success"]) for row in rows])
     correct_tool_rate = _ratio([row["candidate_tool"] == row["oracle_tool"] for row in rows])
@@ -48,9 +54,10 @@ def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> Poli
 
     low_support = [row for row in rows if int(row.get("support_count", 0)) < support_threshold]
     low_support_ratio = len(low_support) / len(rows)
+    low_support_flag = low_support_ratio > LOW_SUPPORT_WARN_SHARE
     coverage_warning = (
         f"{low_support_ratio:.1%} of decisions have low support (<{support_threshold} historical matches)."
-        if low_support_ratio > 0.15
+        if low_support_flag
         else "Support coverage looks sufficient for this candidate policy."
     )
 
@@ -77,5 +84,6 @@ def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> Poli
         estimated_regret_vs_oracle=regret,
         support_coverage_warning=coverage_warning,
         low_support_share=low_support_ratio,
+        low_support=low_support_flag,
         score=round(score, 3),
     )
