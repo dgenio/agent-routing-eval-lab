@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 
 from agent_routing_eval_lab import __version__
+from agent_routing_eval_lab.baseline.unsafe_agent import describe_run as describe_unsafe_run
+from agent_routing_eval_lab.baseline.unsafe_agent import run_unsafe_baseline
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, positive_int, write_csv
 from agent_routing_eval_lab.evaluation.diff import DiffResult, compute_decision_diffs
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions, rank_results
@@ -15,6 +17,9 @@ from agent_routing_eval_lab.evaluation.gates import GatePolicy, apply_gates, loa
 from agent_routing_eval_lab.evaluation.report import write_markdown_report
 from agent_routing_eval_lab.evaluation.serialization import results_to_json
 from agent_routing_eval_lab.evaluation.validation import validate_logged_decisions
+from agent_routing_eval_lab.governed.comparison_report import build_terminal_summary, write_comparison_report
+from agent_routing_eval_lab.governed.governed_agent import describe_run as describe_governed_run
+from agent_routing_eval_lab.governed.governed_agent import run_governed
 from agent_routing_eval_lab.warnings import EvalWarning
 from agent_routing_eval_lab.io_utils import atomic_write_csv, atomic_write_text
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
@@ -141,6 +146,42 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print(f"Report: {report_path}")
     for result in ranked:
         _emit_warnings(result.warnings, verbose=args.verbose, limit=2)
+    return EXIT_OK
+
+
+def cmd_unsafe_demo(args: argparse.Namespace) -> int:
+    output_dir = (args.output_dir or Path.cwd()).resolve()
+    log_path = output_dir / "examples" / "unsafe_baseline_decisions.sample.csv"
+
+    records = run_unsafe_baseline()
+    write_csv(log_path, records)
+
+    print("Unsafe baseline run (full catalog, prompt-only safety, raw tool results):")
+    for line in describe_unsafe_run(records):
+        print(f"  - {line}")
+    unsafe = sum(1 for record in records if record.unsafe_action)
+    print(f"\n{unsafe} of {len(records)} decisions were unsafe.")
+    print(f"Decision logs: {log_path}")
+    return EXIT_OK
+
+
+def cmd_governed_demo(args: argparse.Namespace) -> int:
+    output_dir = (args.output_dir or Path.cwd()).resolve()
+    governed_log_path = output_dir / "examples" / "governed_path_decisions.sample.csv"
+    report_path = output_dir / "reports" / "governed_comparison.md"
+
+    baseline_records = run_unsafe_baseline()
+    governed_records = run_governed()
+    write_csv(governed_log_path, governed_records)
+    write_comparison_report(report_path, baseline_records, governed_records)
+
+    print("Governed path run (bounded choices, context firewall, approval-aware actions):")
+    for line in describe_governed_run(governed_records):
+        print(f"  - {line}")
+    print()
+    print(build_terminal_summary(baseline_records, governed_records))
+    print(f"\nDecision logs: {governed_log_path}")
+    print(f"Report: {report_path}")
     return EXIT_OK
 
 
@@ -287,6 +328,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory for examples/ and reports/ artifacts (default: current directory)",
     )
     demo.set_defaults(func=cmd_demo)
+
+    unsafe_demo = sub.add_parser(
+        "unsafe-demo", help="Run the ungoverned unsafe baseline agent and show what breaks"
+    )
+    unsafe_demo.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Directory for the emitted decision-log CSV (default: current directory)",
+    )
+    unsafe_demo.set_defaults(func=cmd_unsafe_demo)
+
+    governed_demo = sub.add_parser(
+        "governed-demo", help="Run the governed agent and show the before/after vs the unsafe baseline"
+    )
+    governed_demo.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Directory for the emitted decision-log CSV and comparison report (default: current directory)",
+    )
+    governed_demo.set_defaults(func=cmd_governed_demo)
 
     gate = sub.add_parser("gate", help="Evaluate policies and fail (exit 1) on threshold violations")
     gate.add_argument("--input", type=Path, required=True)
