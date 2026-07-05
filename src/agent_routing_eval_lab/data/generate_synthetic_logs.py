@@ -10,6 +10,24 @@ from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
 from agent_routing_eval_lab.io_utils import atomic_write_csv
 
 
+# The historical-log generator models the established nine-tool support operation.
+# It deliberately samples from this fixed universe rather than ``TOOL_CATALOG.keys()``
+# so that adding higher-risk write tools to the catalog (for the governed-path demo
+# scenarios) does not perturb this generator's deterministic output — the committed
+# sample logs and example report stay reproducible.
+SCENARIO_TOOLS: tuple[str, ...] = (
+    "crm.search_customer",
+    "billing.get_invoice",
+    "billing.issue_refund",
+    "support.search_tickets",
+    "support.create_task",
+    "email.draft_reply",
+    "email.send_reply",
+    "docs.search_policy",
+    "audit.export_case",
+)
+
+
 INTENT_BLUEPRINTS: list[tuple[str, str, str]] = [
     ("customer_lookup", "Find account info for customer {customer_id}", "crm.search_customer"),
     ("invoice_question", "I need invoice details for order {customer_id}", "billing.get_invoice"),
@@ -35,7 +53,7 @@ def positive_int(value: str) -> int:
 
 
 def _sample_available_tools(rng: random.Random, oracle_tool: str) -> list[str]:
-    tools = list(TOOL_CATALOG.keys())
+    tools = list(SCENARIO_TOOLS)
     selected = [tool for tool in tools if rng.random() < 0.65]
     if oracle_tool not in selected and rng.random() < 0.9:
         selected.append(oracle_tool)
