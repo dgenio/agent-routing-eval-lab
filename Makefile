@@ -1,5 +1,11 @@
 PYTHON ?= python3
 
+# Fixed generation timestamp so `make report`/`make demo` produce byte-stable
+# reports and committed artifacts don't drift on every run (issue #75). Override
+# to use a different stamp; unset entirely to fall back to the wall clock.
+SOURCE_DATE_EPOCH ?= 1767225600
+export SOURCE_DATE_EPOCH
+
 # This Makefile uses `>` instead of tabs for recipe lines so the file stays
 # visibly consistent across editors; do not reindent recipes with tabs.
 .RECIPEPREFIX := >

@@ -151,7 +151,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 def cmd_report(args: argparse.Namespace) -> int:
     logs, results = _evaluate(args.input, _resolve_policies(args), _resolve_weights(args))
-    write_markdown_report(args.output, results)
+    write_markdown_report(args.output, results, logged_rows=logs)
     print(f"Wrote report to {args.output}")
     if args.json_output is not None:
         atomic_write_text(args.json_output, results_to_json(results, input_path=args.input, row_count=len(logs)))
@@ -166,8 +166,8 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
     records = generate_synthetic_logs(rows=300, seed=7)
     write_csv(data_path, records)
-    _, results = _evaluate(data_path)
-    write_markdown_report(report_path, results)
+    logs, results = _evaluate(data_path)
+    write_markdown_report(report_path, results, logged_rows=logs)
 
     ranked = rank_results(results)
     winner = ranked[0]
