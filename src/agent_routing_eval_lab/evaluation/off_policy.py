@@ -93,12 +93,12 @@ def estimate_off_policy(
             0,
             0.0,
             True,
-            "logs lack propensity_score/reward; off-policy estimate unavailable (reporting oracle-anchored metrics only)",
+            "logs lack propensity_score/reward; off-policy estimate unavailable (oracle-anchored metrics only)",
         )
 
     weights: list[float] = []
     weighted_rewards: list[float] = []
-    for row, candidate in zip(logged_rows, candidate_tools):
+    for row, candidate in zip(logged_rows, candidate_tools, strict=True):
         if candidate != row["chosen_tool"]:
             # Deterministic target policy assigns the logged action probability 0.
             continue

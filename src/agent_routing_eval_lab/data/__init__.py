@@ -5,7 +5,7 @@ Available components:
 - generate_synthetic_logs: 合成日志生成器
 """
 
-from .schemas import DecisionRecord, ToolSpec, TOOL_CATALOG
+from .schemas import TOOL_CATALOG, DecisionRecord, ToolSpec
 
 __all__ = [
     "DecisionRecord",

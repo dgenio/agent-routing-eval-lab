@@ -3,8 +3,8 @@ from agent_routing_eval_lab.adapters.contextweaver_adapter import (
     ToolCard,
     card_token_estimate,
 )
-from agent_routing_eval_lab.evaluation.contextweaver_experiment import run_contextweaver_experiment
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
+from agent_routing_eval_lab.evaluation.contextweaver_experiment import run_contextweaver_experiment
 
 _TOOLS = [
     "crm.search_customer",

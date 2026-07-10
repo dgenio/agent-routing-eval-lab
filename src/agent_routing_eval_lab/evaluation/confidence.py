@@ -13,7 +13,12 @@ import random
 from dataclasses import dataclass
 from typing import Any
 
-from agent_routing_eval_lab.evaluation.metrics import DEFAULT_WEIGHTS, PolicyMetrics, ScoreWeights, compute_policy_metrics
+from agent_routing_eval_lab.evaluation.metrics import (
+    DEFAULT_WEIGHTS,
+    PolicyMetrics,
+    ScoreWeights,
+    compute_policy_metrics,
+)
 
 DEFAULT_ITERATIONS = 500
 DEFAULT_SEED = 1234

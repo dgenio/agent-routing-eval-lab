@@ -21,3 +21,21 @@ jobs:
         run: make install
       - name: Test
         run: make test
+
+  lint:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: make install
+      - name: Lint (ruff)
+        run: make lint
+      - name: Type-check (mypy)
+        run: make typecheck
+      - name: Demo smoke test
+        run: make demo

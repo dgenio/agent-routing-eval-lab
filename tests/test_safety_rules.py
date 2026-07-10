@@ -41,7 +41,7 @@ def test_generator_and_evaluator_agree_on_unsafe_via_shared_rule() -> None:
     rows = [record.to_dict() for record in records]
     evaluator = OfflineEvaluator(rows)
 
-    for record, row in zip(records, rows):
+    for record, row in zip(records, rows, strict=True):
         scored = evaluator._score_decision(row=row, candidate_tool=record.chosen_tool)
         expected = is_unsafe_action(
             tool=record.chosen_tool,

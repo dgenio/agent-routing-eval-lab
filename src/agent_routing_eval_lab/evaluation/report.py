@@ -8,7 +8,6 @@ from typing import Any
 
 from agent_routing_eval_lab.evaluation.confidence import intervals_overlap
 from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult, rank_results
-from agent_routing_eval_lab.evaluation.metrics import LOW_SUPPORT_WARN_SHARE
 from agent_routing_eval_lab.evaluation.recommendation import pareto_frontier, recommend_rollout
 from agent_routing_eval_lab.io_utils import atomic_write_text
 
@@ -40,7 +39,8 @@ def _comparison_table(ranked: list[PolicyEvaluationResult]) -> list[str]:
         "",
         "Oracle-anchored scenario-replay metrics. Higher `Score` is better.",
         "",
-        "| Policy | Success | Correct Tool | Approval Req | Avg Cost | Avg Latency (ms) | Unsafe | Unresolved | Regret | Score |",
+        "| Policy | Success | Correct Tool | Approval Req | Avg Cost | Avg Latency (ms) | Unsafe | "
+        "Unresolved | Regret | Score |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for result in ranked:
@@ -148,9 +148,7 @@ def _off_policy_section(ranked: list[PolicyEvaluationResult]) -> list[str]:
         ips = "n/a" if estimate.ips is None else f"{estimate.ips:.3f}"
         snips = "n/a" if estimate.snips is None else f"{estimate.snips:.3f}"
         confidence = "⚠️ low-confidence" if estimate.low_confidence else "ok"
-        lines.append(
-            f"| {result.policy_name} | {ips} | {snips} | {estimate.matched}/{estimate.n} | {confidence} |"
-        )
+        lines.append(f"| {result.policy_name} | {ips} | {snips} | {estimate.matched}/{estimate.n} | {confidence} |")
     lines.append("")
     lines.append(
         "_Low-confidence off-policy estimates are extrapolation, not measurement: "
@@ -182,9 +180,7 @@ def _support_section(winner: PolicyEvaluationResult) -> list[str]:
     for (intent, tool), decisions in sorted(cells.items(), key=lambda item: (-item[1], item[0])):
         historical = support.get((intent, tool), 0)
         thin = historical < _SUPPORT_THRESHOLD
-        lines.append(
-            f"| {intent} | {tool} | {decisions} | {historical} | {'⚠️ thin' if thin else 'ok'} |"
-        )
+        lines.append(f"| {intent} | {tool} | {decisions} | {historical} | {'⚠️ thin' if thin else 'ok'} |")
     lines.append("")
     return lines
 
@@ -201,8 +197,7 @@ def _dataset_profile_section(logged_rows: list[dict[str, Any]]) -> list[str]:
     lines = [
         "## Dataset Profile",
         "",
-        f"The evaluation read **{n}** logged decisions. Metrics are only as "
-        "representative as this input.",
+        f"The evaluation read **{n}** logged decisions. Metrics are only as representative as this input.",
         "",
         f"- Approval-required decisions: {approval_required / n:.1%}",
         "",

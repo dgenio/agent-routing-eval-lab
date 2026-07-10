@@ -3,8 +3,8 @@ import pytest
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator
 from agent_routing_eval_lab.evaluation.serialization import results_to_dict
-from agent_routing_eval_lab.warnings import EvalWarning
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
+from agent_routing_eval_lab.warnings import EvalWarning
 
 
 def test_eval_warning_str_returns_message() -> None:

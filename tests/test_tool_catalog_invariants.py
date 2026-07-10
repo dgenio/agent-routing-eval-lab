@@ -23,8 +23,6 @@ def test_risk_classification_stays_consistent_with_legacy_flags() -> None:
 
         # Reverse direction: neither legacy flag may be set on a tool graded "safe".
         if spec.requires_approval:
-            assert spec.risk_tier == "irreversible", (
-                f"{name}: requires_approval implies an irreversible risk tier"
-            )
+            assert spec.risk_tier == "irreversible", f"{name}: requires_approval implies an irreversible risk tier"
         if spec.sensitive:
             assert spec.risk_tier != "safe", f"{name}: sensitive flag implies a non-safe risk tier"

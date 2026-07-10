@@ -24,7 +24,7 @@ class SkdrEvalAdapter:
     def __init__(self) -> None:
         self._native = None
         try:
-            import skdr_eval  # type: ignore
+            import skdr_eval
 
             self._native = skdr_eval
         except Exception:

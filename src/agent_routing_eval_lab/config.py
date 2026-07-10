@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agent_routing_eval_lab.data.schemas import TOOL_CATALOG, ToolSpec
+from agent_routing_eval_lab.data.schemas import ToolSpec
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
 from agent_routing_eval_lab.routing.cost_aware_router import CostAwareRouter
@@ -64,7 +64,8 @@ def load_tool_catalog(path: Path) -> dict[str, ToolSpec]:
     for entry in raw["tools"]:
         unknown = set(entry) - allowed
         if unknown:
-            raise ValueError(f"{path}: tool '{entry.get('name', '?')}' has unknown key(s): {', '.join(sorted(unknown))}")
+            name = entry.get("name", "?")
+            raise ValueError(f"{path}: tool '{name}' has unknown key(s): {', '.join(sorted(unknown))}")
         spec = ToolSpec(
             name=entry["name"],
             avg_cost=float(entry["avg_cost"]),

@@ -15,9 +15,7 @@ class ContextWeaverRouter:
 
     def route(self, query: str, intent: str, available_tools: list[str], metadata: dict | None = None) -> str:
         approval_granted = bool((metadata or {}).get("approval_granted", False))
-        cards = self.adapter.build_tool_cards(
-            available_tools=available_tools, intent=intent, max_cards=self.max_cards
-        )
+        cards = self.adapter.build_tool_cards(available_tools=available_tools, intent=intent, max_cards=self.max_cards)
         card_names = [card.name for card in cards]
         if intent == "refund_request" and "billing.issue_refund" in card_names and approval_granted:
             return "billing.issue_refund"

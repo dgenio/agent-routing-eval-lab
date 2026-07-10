@@ -2,9 +2,14 @@
 
 **Offline evaluation lab for agent routing and tool-selection policies before production.**
 
+[![tests](https://github.com/dgenio/agent-routing-eval-lab/actions/workflows/tests.yml/badge.svg)](https://github.com/dgenio/agent-routing-eval-lab/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Read the Weaver Stack overview on Towards AI](https://img.shields.io/badge/Read_the_overview-Towards_AI-black?logo=medium&logoColor=white)](https://pub.towardsai.net/the-weaver-stack-one-contract-layer-for-safe-llm-agents-7f733cad5eac)
 
 Most agent teams tweak prompts, routers, tool catalogs, and policy rules frequently. This lab demonstrates why production changes need offline evaluation first: a new policy can improve one metric while quietly increasing cost, latency, unsafe actions, or unresolved requests.
+
+It is a runnable reference for **off-policy / counterfactual evaluation** of **LLM-agent** **tool-calling** and **routing** policies — honest IPS/SNIPS estimates on **logged decisions**, safety/coverage gating, and a **hold / revise / canary** rollout recommendation — aimed at **AI governance**, **agent evaluation**, and **ML-platform** work.
 
 ## What this repo demonstrates
 
@@ -66,6 +71,22 @@ Every policy lands on `hold` here — the synthetic logs have thin per-`(intent,
 support, so the report refuses to wave any candidate through to canary. That honest
 refusal is the point; the full report shows the rollout verdicts, confidence
 intervals, off-policy estimates, and support diagnostics behind it.
+
+`make demo` prints the score chart and the coverage/adapter warnings to the terminal:
+
+```text
+Policy score chart
+- contextweaver_v1 ██████████████████████████████████████ 76.42
+- contextweaver_v2 ██████████████████████████████████████ 76.42
+- baseline         ██████████████████████████████████ 68.77
+- strict_policy    █████████████████████████████ 59.57
+- cost_aware       ████████████████████████ 49.21
+Winning policy: contextweaver_v1
+Data:   examples/logged_decisions.sample.csv
+Report: reports/example_report.md
+warning: 29.0% of decisions have low support (<5 historical matches).
+warning: skdr-eval not installed; reporting the local IPS/SNIPS off-policy estimate. …
+```
 
 ## Unsafe baseline → governed path
 
@@ -129,3 +150,13 @@ Optional extensions to deterministic flows (e.g., ChainWeaver) or governance lay
 
 See [`docs/non-goals.md`](docs/non-goals.md) for scope boundaries that keep the
 lab focused on offline routing evaluation rather than live runtime ownership.
+
+## Keywords
+
+Agent evaluation · offline evaluation · off-policy evaluation · counterfactual
+evaluation · IPS / SNIPS · LLM agents · tool calling · agent routing · AI
+governance · MLOps · Python.
+
+Suggested GitHub topics: `agent-evaluation`, `offline-evaluation`,
+`off-policy-evaluation`, `counterfactual-evaluation`, `llm-agents`,
+`tool-calling`, `routing`, `ai-governance`, `mlops`, `python`.

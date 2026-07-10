@@ -15,6 +15,7 @@ from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthet
 from agent_routing_eval_lab.evaluation.diff import DiffResult, compute_decision_diffs
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions, rank_results
 from agent_routing_eval_lab.evaluation.gates import GatePolicy, apply_gates, load_gate_policy, violations_to_dict
+from agent_routing_eval_lab.evaluation.linting import has_errors, lint_logged_decisions
 from agent_routing_eval_lab.evaluation.metrics import DEFAULT_WEIGHTS, ScoreWeights
 from agent_routing_eval_lab.evaluation.report import write_markdown_report
 from agent_routing_eval_lab.evaluation.serialization import results_to_json
@@ -22,13 +23,13 @@ from agent_routing_eval_lab.evaluation.validation import validate_logged_decisio
 from agent_routing_eval_lab.governed.comparison_report import build_terminal_summary, write_comparison_report
 from agent_routing_eval_lab.governed.governed_agent import describe_run as describe_governed_run
 from agent_routing_eval_lab.governed.governed_agent import run_governed
-from agent_routing_eval_lab.warnings import EvalWarning
 from agent_routing_eval_lab.io_utils import atomic_write_csv, atomic_write_text
 from agent_routing_eval_lab.routing.baseline_router import BaselineRouter
 from agent_routing_eval_lab.routing.contextweaver_router import ContextWeaverRouter
 from agent_routing_eval_lab.routing.cost_aware_router import CostAwareRouter
 from agent_routing_eval_lab.routing.strict_policy_router import StrictPolicyRouter
 from agent_routing_eval_lab.visualization.charts import ascii_score_chart
+from agent_routing_eval_lab.warnings import EvalWarning
 
 # Exit-code contract (documented in docs/cli.md and shared with the gate command):
 #   0 = success / gate passed
@@ -279,9 +280,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
     available = _policies()
     for name in (args.policy_a, args.policy_b):
         if name not in available:
-            raise ValueError(
-                f"unknown policy '{name}'; available policies: {', '.join(sorted(available))}"
-            )
+            raise ValueError(f"unknown policy '{name}'; available policies: {', '.join(sorted(available))}")
     selected = {args.policy_a: available[args.policy_a], args.policy_b: available[args.policy_b]}
     _, results = _evaluate(args.input, selected)
     result_a = next(r for r in results if r.policy_name == args.policy_a)
@@ -317,6 +316,25 @@ def cmd_validate(args: argparse.Namespace) -> int:
     for error in errors:
         print(f"  - {error}", file=sys.stderr)
     return EXIT_GATE_FAILED
+
+
+def cmd_lint(args: argparse.Namespace) -> int:
+    rows = load_logged_decisions(args.input)
+    ignore = {code.strip() for code in args.ignore.split(",")} if args.ignore else set()
+    findings = [finding for finding in lint_logged_decisions(rows) if finding.code not in ignore]
+
+    if args.format == "json":
+        print(json.dumps([finding.to_dict() for finding in findings], indent=2))
+    elif not findings:
+        print(f"OK: no lint findings in {args.input}")
+    else:
+        print(f"{len(findings)} lint finding(s) in {args.input}:")
+        for finding in findings:
+            stream = sys.stderr if finding.severity == "error" else sys.stdout
+            print(f"  [{finding.severity}] {finding.code} ({finding.request_id}): {finding.message}", file=stream)
+
+    # Errors are a no-go (exit 1); warnings alone still pass.
+    return EXIT_GATE_FAILED if has_errors(findings) else EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -361,7 +379,11 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--input", type=Path, required=True)
     report.add_argument("--output", type=Path, required=True)
     report.add_argument(
-        "--json-output", type=Path, default=None, metavar="PATH", help="Also write machine-readable JSON results to PATH"
+        "--json-output",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Also write machine-readable JSON results to PATH",
     )
     report.add_argument(
         "--policies",
@@ -389,9 +411,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     demo.set_defaults(func=cmd_demo)
 
-    unsafe_demo = sub.add_parser(
-        "unsafe-demo", help="Run the ungoverned unsafe baseline agent and show what breaks"
-    )
+    unsafe_demo = sub.add_parser("unsafe-demo", help="Run the ungoverned unsafe baseline agent and show what breaks")
     unsafe_demo.add_argument(
         "--output-dir",
         type=Path,
@@ -437,6 +457,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--input", type=Path, required=True)
     validate.add_argument("--max-errors", type=positive_int, default=None, help="Stop after this many errors")
     validate.set_defaults(func=cmd_validate)
+
+    lint = sub.add_parser("lint", help="Static safety/leakage lint of a logged-decisions CSV (no replay)")
+    lint.add_argument("--input", type=Path, required=True)
+    lint.add_argument("--format", choices=["text", "json"], default="text", help="Output format (default: text)")
+    lint.add_argument(
+        "--ignore", type=str, default=None, metavar="CODES", help="Comma-separated lint codes to suppress"
+    )
+    lint.set_defaults(func=cmd_lint)
 
     return parser
 

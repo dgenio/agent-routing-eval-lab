@@ -56,7 +56,7 @@ class ScoreWeights:
         return {field.name: getattr(self, field.name) for field in fields(self)}
 
     @classmethod
-    def from_json(cls, path: Path) -> "ScoreWeights":
+    def from_json(cls, path: Path) -> ScoreWeights:
         """Load weights from a JSON object file; unknown keys are rejected."""
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))

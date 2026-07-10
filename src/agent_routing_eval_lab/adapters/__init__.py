@@ -5,8 +5,8 @@ Available adapters:
 - ContextWeaverAdapter: 上下文感知适配器
 """
 
-from .skdr_eval_adapter import SkdrEvalAdapter
 from .contextweaver_adapter import ContextWeaverAdapter
+from .skdr_eval_adapter import SkdrEvalAdapter
 
 __all__ = [
     "SkdrEvalAdapter",

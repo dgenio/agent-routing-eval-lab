@@ -10,10 +10,14 @@ from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrEvalAdapter
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.confidence import ConfidenceIntervals, bootstrap_metric_intervals
-from agent_routing_eval_lab.evaluation.metrics import DEFAULT_WEIGHTS, PolicyMetrics, ScoreWeights, compute_policy_metrics
+from agent_routing_eval_lab.evaluation.metrics import (
+    DEFAULT_WEIGHTS,
+    PolicyMetrics,
+    ScoreWeights,
+    compute_policy_metrics,
+)
 from agent_routing_eval_lab.evaluation.off_policy import OffPolicyEstimate, estimate_off_policy
 from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
-
 
 # Coefficients of the per-decision utility model used in ``_score_decision``. The
 # utility of a decision is:
@@ -120,9 +124,7 @@ def tool_catalog_row_errors(row: dict[str, Any], available_tools: list[str]) -> 
     else:
         unknown_available = [tool for tool in available_tools if tool not in TOOL_CATALOG]
         if unknown_available:
-            errors.append(
-                f"unknown tool(s) {unknown_available} in 'available_tools' are not present in TOOL_CATALOG"
-            )
+            errors.append(f"unknown tool(s) {unknown_available} in 'available_tools' are not present in TOOL_CATALOG")
     oracle_tool = str(row["oracle_tool"])
     if oracle_tool not in TOOL_CATALOG:
         errors.append(f"unknown oracle_tool '{oracle_tool}' is not present in TOOL_CATALOG")
@@ -141,7 +143,9 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
             request_id = str(row.get("request_id", "<unknown>"))
             row["success"] = _parse_bool(str(row["success"]), column="success", request_id=request_id)
             row["cost"] = _parse_non_negative_float(str(row["cost"]), column="cost", request_id=request_id)
-            row["latency_ms"] = _parse_non_negative_int(str(row["latency_ms"]), column="latency_ms", request_id=request_id)
+            row["latency_ms"] = _parse_non_negative_int(
+                str(row["latency_ms"]), column="latency_ms", request_id=request_id
+            )
             row["requires_approval"] = _parse_bool(
                 str(row["requires_approval"]), column="requires_approval", request_id=request_id
             )

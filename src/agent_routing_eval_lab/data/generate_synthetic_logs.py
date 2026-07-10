@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import random
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
-from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
+from agent_routing_eval_lab.data.schemas import TOOL_CATALOG, DecisionRecord
 from agent_routing_eval_lab.io_utils import atomic_write_csv
-
 
 # The historical-log generator models the established nine-tool support operation.
 # It deliberately samples from this fixed universe rather than ``TOOL_CATALOG.keys()``
@@ -228,11 +228,10 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
     return records
 
 
-def write_csv(path: Path, records: list[DecisionRecord]) -> None:
+def write_csv(path: Path, records: Sequence[DecisionRecord]) -> None:
     if not records:
         raise ValueError(
-            "write_csv requires at least one record to infer CSV headers; "
-            "got an empty list (e.g. when --rows is 0)"
+            "write_csv requires at least one record to infer CSV headers; got an empty list (e.g. when --rows is 0)"
         )
     fieldnames = list(records[0].to_dict().keys())
     atomic_write_csv(path, fieldnames, (record.to_dict() for record in records))

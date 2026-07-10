@@ -34,6 +34,4 @@ def test_diff_regressions_sort_first() -> None:
     diff = compute_decision_diffs(results["baseline"], results["strict_policy"])
     classifications = [d.classification for d in diff.diffs]
     # Regressions are grouped ahead of neutral/improvement entries.
-    assert classifications == sorted(
-        classifications, key={"regression": 0, "neutral": 1, "improvement": 2}.get
-    )
+    assert classifications == sorted(classifications, key={"regression": 0, "neutral": 1, "improvement": 2}.get)
