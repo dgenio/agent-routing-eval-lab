@@ -40,6 +40,8 @@ def _naive_pick(query: str, intent: str, available_tools: list[str]) -> str:
     domain (a bigger hammer must be more helpful). Fall back to the first available
     tool when no domain matches.
     """
+    if not available_tools:
+        raise ValueError("_naive_pick requires at least one available tool")
     domain = infer_domain(query, intent)
     if domain is not None:
         domain_tools = [tool for tool in available_tools if tool.split(".")[0] == domain]
@@ -48,11 +50,7 @@ def _naive_pick(query: str, intent: str, available_tools: list[str]) -> str:
     return available_tools[0]
 
 
-def _resolved(chosen_tool: str, success: bool) -> bool:
-    return success or TOOL_CATALOG[chosen_tool].resolves_without_success
-
-
-def _classify_failure(*, chosen_tool: str, oracle_tool: str, unsafe: bool, followed_injection: bool, intent: str) -> str:
+def _classify_failure(*, chosen_tool: str, oracle_tool: str, unsafe: bool, followed_injection: bool) -> str:
     if followed_injection:
         return "context_pollution"
     if unsafe:
@@ -109,7 +107,6 @@ def _run_scenario(scenario: Scenario, index: int) -> DecisionRecord:
         oracle_tool=scenario.oracle_tool,
         unsafe=unsafe,
         followed_injection=followed_injection,
-        intent=scenario.intent,
     )
     timestamp = (datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=index * 5)).isoformat()
 

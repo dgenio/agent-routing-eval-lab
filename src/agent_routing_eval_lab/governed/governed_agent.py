@@ -31,6 +31,8 @@ _INTENT_PREFERRED_TOOL = {
 
 def _preferred_pick(intent: str, card_names: list[str]) -> str:
     """Pick the minimal intent-appropriate tool from the bounded card set."""
+    if not card_names:
+        raise ValueError("_preferred_pick requires at least one bounded tool card")
     preferred = _INTENT_PREFERRED_TOOL.get(intent)
     if preferred is not None and preferred in card_names:
         return preferred
