@@ -88,6 +88,38 @@ agent-routing-eval-lab demo
 agent-routing-eval-lab demo --output-dir /tmp/demo-run
 ```
 
+## `unsafe-demo`
+
+Run the ungoverned unsafe baseline agent over a fixed synthetic scenario set and
+show what breaks — full-catalog distraction, prompt-only "safety", raw tool output
+trusted as instruction, and unapproved sensitive writes. Emits evaluator-ready
+decision logs. See [governed_path.md](governed_path.md).
+
+| Flag | Default | Description |
+|---|---|---|
+| `--output-dir` | current directory | Where to write the `examples/unsafe_baseline_decisions.sample.csv` log. |
+
+```bash
+agent-routing-eval-lab unsafe-demo
+agent-routing-eval-lab unsafe-demo --output-dir /tmp/demo-run
+```
+
+## `governed-demo`
+
+Run the governed agent (bounded tool choices, context firewall, approval-aware
+action guard) over the same scenarios and print a before/after comparison against
+the unsafe baseline. Emits auditable governed decision logs and a comparison report.
+See [governed_path.md](governed_path.md).
+
+| Flag | Default | Description |
+|---|---|---|
+| `--output-dir` | current directory | Where to write `examples/governed_path_decisions.sample.csv` and `reports/governed_comparison.md`. |
+
+```bash
+agent-routing-eval-lab governed-demo
+agent-routing-eval-lab governed-demo --output-dir /tmp/demo-run
+```
+
 ## `gate`
 
 Evaluate policies and exit non-zero when thresholds are violated — the CI pre-deployment gate.

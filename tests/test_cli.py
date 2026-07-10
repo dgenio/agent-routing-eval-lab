@@ -102,3 +102,18 @@ def test_demo_output_dir_writes_artifacts(tmp_path, capsys) -> None:
     assert (out / "examples" / "logged_decisions.sample.csv").is_file()
     assert (out / "reports" / "example_report.md").is_file()
     assert str(out) in capsys.readouterr().out
+
+
+def test_unsafe_demo_writes_logs_and_reports_failures(tmp_path, capsys) -> None:
+    out = tmp_path / "run"
+    assert main(["unsafe-demo", "--output-dir", str(out)]) == EXIT_OK
+    assert (out / "examples" / "unsafe_baseline_decisions.sample.csv").is_file()
+    assert "were unsafe" in capsys.readouterr().out
+
+
+def test_governed_demo_writes_logs_report_and_summary(tmp_path, capsys) -> None:
+    out = tmp_path / "run"
+    assert main(["governed-demo", "--output-dir", str(out)]) == EXIT_OK
+    assert (out / "examples" / "governed_path_decisions.sample.csv").is_file()
+    assert (out / "reports" / "governed_comparison.md").is_file()
+    assert "Before/after" in capsys.readouterr().out

@@ -4,7 +4,7 @@ PYTHON ?= python3
 # visibly consistent across editors; do not reindent recipes with tabs.
 .RECIPEPREFIX := >
 
-.PHONY: install test generate-data evaluate report demo validate gate help
+.PHONY: install test generate-data evaluate report demo unsafe-demo governed-demo validate gate help
 
 help: ## Show available developer commands
 >@printf '%s\n' 'Available targets:'
@@ -28,6 +28,12 @@ report: ## Write the example markdown report
 
 demo: ## Run the end-to-end deterministic demo flow
 >$(PYTHON) -m agent_routing_eval_lab.cli demo
+
+unsafe-demo: ## Run the ungoverned unsafe baseline agent and show what breaks
+>$(PYTHON) -m agent_routing_eval_lab.cli unsafe-demo
+
+governed-demo: ## Run the governed agent and show the before/after vs the unsafe baseline
+>$(PYTHON) -m agent_routing_eval_lab.cli governed-demo
 
 validate: ## Validate the sample logged-decisions CSV against the schema
 >$(PYTHON) -m agent_routing_eval_lab.cli validate --input examples/logged_decisions.sample.csv
