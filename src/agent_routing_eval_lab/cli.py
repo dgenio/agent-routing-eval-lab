@@ -10,6 +10,7 @@ from pathlib import Path
 from agent_routing_eval_lab import __version__
 from agent_routing_eval_lab.baseline.unsafe_agent import describe_run as describe_unsafe_run
 from agent_routing_eval_lab.baseline.unsafe_agent import run_unsafe_baseline
+from agent_routing_eval_lab.config import load_policy_candidates
 from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthetic_logs, positive_int, write_csv
 from agent_routing_eval_lab.evaluation.diff import DiffResult, compute_decision_diffs
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions, rank_results
@@ -40,11 +41,17 @@ logger = logging.getLogger("agent_routing_eval_lab")
 
 
 def _policies() -> dict[str, object]:
+    """The default candidate set (zero-dependency, no config file required).
+
+    Mirrors ``examples/policy_candidates/*.yaml``; a drift-guard test keeps the two
+    in sync. Use ``--policies DIR`` to load a candidate set from YAML instead.
+    """
     return {
         "baseline": BaselineRouter(),
         "cost_aware": CostAwareRouter(),
         "strict_policy": StrictPolicyRouter(),
-        "contextweaver_v1": ContextWeaverRouter(),
+        "contextweaver_v1": ContextWeaverRouter(max_cards=4),
+        "contextweaver_v2": ContextWeaverRouter(max_cards=3),
     }
 
 
@@ -71,6 +78,18 @@ def _emit_warnings(warnings: list[EvalWarning], *, verbose: bool, limit: int = 3
     hidden = len(warnings) - len(shown)
     if hidden > 0:
         logger.warning("... and %d more warning(s); re-run with -v to see all", hidden)
+
+
+def _resolve_policies(args: argparse.Namespace) -> dict[str, object] | None:
+    """Load the candidate set from ``--policies DIR`` when given, else the default.
+
+    Returns ``None`` to signal "use the built-in default set" so the zero-dependency
+    path never touches the optional YAML loader.
+    """
+    policies_dir = getattr(args, "policies", None)
+    if policies_dir is None:
+        return None
+    return load_policy_candidates(policies_dir)
 
 
 def _evaluate(input_path: Path, policies: dict[str, object] | None = None):
@@ -102,7 +121,7 @@ def cmd_generate_data(args: argparse.Namespace) -> int:
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
-    logs, results = _evaluate(args.input)
+    logs, results = _evaluate(args.input, _resolve_policies(args))
     if args.dump_decisions is not None:
         _dump_decisions(results, args.dump_decisions)
 
@@ -118,7 +137,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    logs, results = _evaluate(args.input)
+    logs, results = _evaluate(args.input, _resolve_policies(args))
     write_markdown_report(args.output, results)
     print(f"Wrote report to {args.output}")
     if args.json_output is not None:
@@ -309,6 +328,13 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument(
         "--dump-decisions", type=Path, default=None, metavar="DIR", help="Write per-policy scored-row CSVs to DIR"
     )
+    evaluate.add_argument(
+        "--policies",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Load candidate policies from a directory of YAML files (requires the 'config' extra)",
+    )
     evaluate.set_defaults(func=cmd_evaluate)
 
     report = sub.add_parser("report", help="Generate markdown report")
@@ -316,6 +342,13 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output", type=Path, required=True)
     report.add_argument(
         "--json-output", type=Path, default=None, metavar="PATH", help="Also write machine-readable JSON results to PATH"
+    )
+    report.add_argument(
+        "--policies",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="Load candidate policies from a directory of YAML files (requires the 'config' extra)",
     )
     report.set_defaults(func=cmd_report)
 

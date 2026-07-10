@@ -7,12 +7,17 @@ from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 class ContextWeaverRouter:
     name = "contextweaver"
 
-    def __init__(self, adapter: ContextWeaverAdapter | None = None) -> None:
+    def __init__(self, adapter: ContextWeaverAdapter | None = None, max_cards: int = 4) -> None:
         self.adapter = adapter or ContextWeaverAdapter()
+        # Bounded choice budget. Distinct candidates (contextweaver_v1 vs _v2) and
+        # the bounded-vs-unbounded experiment vary only this number.
+        self.max_cards = max_cards
 
     def route(self, query: str, intent: str, available_tools: list[str], metadata: dict | None = None) -> str:
         approval_granted = bool((metadata or {}).get("approval_granted", False))
-        cards = self.adapter.build_tool_cards(available_tools=available_tools, intent=intent, max_cards=4)
+        cards = self.adapter.build_tool_cards(
+            available_tools=available_tools, intent=intent, max_cards=self.max_cards
+        )
         card_names = [card.name for card in cards]
         if intent == "refund_request" and "billing.issue_refund" in card_names and approval_granted:
             return "billing.issue_refund"

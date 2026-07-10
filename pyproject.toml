@@ -22,8 +22,14 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+# Optional YAML config surface (agent_routing_eval_lab.config). The deterministic
+# core stays dependency-free; install this to load catalog/policies from YAML.
+config = [
+  "pyyaml>=6.0",
+]
 dev = [
   "pytest>=8.0",
+  "pyyaml>=6.0",
 ]
 
 [project.scripts]

@@ -40,6 +40,7 @@ def test_evaluate_dump_decisions_writes_one_file_per_policy(tmp_path, sample_csv
     assert files == [
         "baseline_decisions.csv",
         "contextweaver_v1_decisions.csv",
+        "contextweaver_v2_decisions.csv",
         "cost_aware_decisions.csv",
         "strict_policy_decisions.csv",
     ]
