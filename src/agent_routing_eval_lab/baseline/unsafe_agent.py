@@ -128,6 +128,10 @@ def _run_scenario(scenario: Scenario, index: int) -> DecisionRecord:
         unsafe_action=unsafe,
         human_rating=5 if success else 1,
         policy_version=POLICY_VERSION,
+        # Deterministic single-choice agent: propensity 1.0 for the action taken;
+        # reward mirrors the generator's human_rating/5 convention.
+        propensity_score=1.0,
+        reward=1.0 if success else 0.2,
     )
 
 

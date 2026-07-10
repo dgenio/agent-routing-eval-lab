@@ -121,6 +121,16 @@ class DecisionRecord:
     unsafe_action: bool
     human_rating: int
     policy_version: str
+    # Probability the logging policy assigned to ``chosen_tool`` for this row.
+    # This is the behavior-policy propensity that honest off-policy estimators
+    # (IPS/SNIPS in ``evaluation/off_policy.py``) divide by; a value in (0, 1].
+    # Emitted by the synthetic generator, which knows its own sampling
+    # distribution. Optional in loaded CSVs — see docs/input-schema.md.
+    propensity_score: float = 1.0
+    # Logged scalar reward for the decision, in [0, 1]. Derived from
+    # ``human_rating`` so downstream estimators consume a real logged outcome
+    # instead of re-deriving success from the oracle. Optional in loaded CSVs.
+    reward: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -104,6 +104,10 @@ def _run_scenario(
         unsafe_action=False,  # governed path honors the guard, so it never acts unsafely
         human_rating=5 if success else 3,
         policy_version=POLICY_VERSION,
+        # Deterministic single-choice agent, so its propensity for the action it
+        # took is 1.0; reward mirrors the generator's human_rating/5 convention.
+        propensity_score=1.0,
+        reward=1.0 if success else 0.6,
         cards_shown="|".join(card_names),
         tools_withheld="|".join(withheld),
         withheld_reason="bounded choice budget" if withheld else "",

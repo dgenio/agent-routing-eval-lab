@@ -109,6 +109,8 @@ Example record (the refund held for approval):
   "approval_granted": false,
   "unsafe_action": false,
   "policy_version": "governed_v1",
+  "propensity_score": 1.0,
+  "reward": 0.6,
   "cards_shown": "billing.issue_refund|billing.get_invoice|support.create_task",
   "tools_withheld": "",
   "action_verdict": "require_approval",
