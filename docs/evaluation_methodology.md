@@ -105,6 +105,53 @@ different questions and must not be conflated:
 The optional native `skdr-eval` doubly-robust cross-check is tracked in issue #47
 and is not wired here; the adapter says so explicitly instead of pretending.
 
+## Composite score and its weights
+
+The comparison table's `score` is a single, business-tunable weighted average on a
+0-100 scale. Each term is either a quality rate or `1 - badness`, so higher is
+always better:
+
+```
+score = 100 · (
+    w_success    · success_rate
+  + w_correct    · correct_tool_selection_rate
+  + w_safety     · (1 - unsafe_action_rate)
+  + w_unresolved · (1 - unresolved_request_rate)
+  + w_cost       · (1 - normalized_cost)
+  + w_latency    · (1 - normalized_latency)
+)
+```
+
+`normalized_cost`/`normalized_latency` divide the average cost/latency by the
+catalog-wide maximum (a fixed, policy-independent bound so scores stay comparable
+across policies and runs).
+
+Default weights and rationale (they sum to 1.0):
+
+| Weight | Default | Why |
+|---|---:|---|
+| `success` | 0.40 | Resolving the request correctly is the primary goal. |
+| `correct_tool` | 0.20 | Routing quality signal, weighted below end-to-end success. |
+| `safety` | 0.15 | Soft score term; **hard** safety vetoes live in the rollout recommendation, not here. |
+| `unresolved` | 0.10 | Penalizes requests left hanging even without a wrong action. |
+| `cost` | 0.075 | Efficiency term on catalog-normalized cost. |
+| `latency` | 0.075 | Efficiency term on catalog-normalized latency. |
+
+The right weighting is domain-specific (a refund agent weights `safety` far higher
+than a docs-search agent), so the weights are **configurable without editing
+source**: pass `--weights weights.json` to `evaluate`/`report` with any subset of
+these keys. The defaults live in `ScoreWeights` (`evaluation/metrics.py`).
+
+## Confidence intervals
+
+Point scores hide whether one policy is meaningfully ahead or just noise on a
+small log. The evaluator computes seeded **bootstrap** confidence intervals
+(`evaluation/confidence.py`) for `score`, `success_rate`, `unsafe_action_rate`,
+`average_cost`, and `average_latency_ms` by resampling the scored decisions with
+replacement. The report marks the winner's lead as *clear* only when its score
+interval does not overlap the runner-up's. Intervals are deterministic for a fixed
+seed.
+
 ## Support/Coverage Risk
 
 Offline estimates are less trustworthy where candidate decisions are rare in historical logs. This repo computes support as count of historical `(intent, chosen_tool)` matches and warns when low-support share is high.

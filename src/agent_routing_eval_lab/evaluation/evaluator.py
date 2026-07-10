@@ -9,7 +9,8 @@ from typing import Any
 from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrEvalAdapter
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
-from agent_routing_eval_lab.evaluation.metrics import PolicyMetrics, compute_policy_metrics
+from agent_routing_eval_lab.evaluation.confidence import ConfidenceIntervals, bootstrap_metric_intervals
+from agent_routing_eval_lab.evaluation.metrics import DEFAULT_WEIGHTS, PolicyMetrics, ScoreWeights, compute_policy_metrics
 from agent_routing_eval_lab.evaluation.off_policy import OffPolicyEstimate, estimate_off_policy
 from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
 
@@ -62,6 +63,9 @@ class PolicyEvaluationResult:
     # ``available=False`` estimate when the logs carry no propensity/reward signal.
     # Additive; defaults to ``None`` so existing constructors keep working.
     off_policy: OffPolicyEstimate | None = None
+    # Seeded bootstrap confidence intervals for the headline metrics, or ``None``
+    # when interval computation was disabled for this run.
+    confidence: ConfidenceIntervals | None = None
 
 
 def rank_results(results: list[PolicyEvaluationResult]) -> list[PolicyEvaluationResult]:
@@ -163,9 +167,17 @@ class OfflineEvaluator:
         support_threshold: int = 5,
         *,
         skdr_adapter: SkdrEvalAdapter | None = None,
+        weights: ScoreWeights = DEFAULT_WEIGHTS,
+        compute_confidence: bool = True,
     ) -> None:
         self.logged_rows = logged_rows
         self.support_threshold = support_threshold
+        # Composite-score weights (issue #10); business-tunable via the CLI.
+        self.weights = weights
+        # Whether to compute bootstrap confidence intervals (issue #115). Disabled
+        # by internal callers (e.g. the ContextWeaver experiment) that only need
+        # point estimates and would otherwise pay the resampling cost.
+        self.compute_confidence = compute_confidence
         self.support = Counter((row["intent"], row["chosen_tool"]) for row in logged_rows)
         # Injected so tests and downstream integrations can substitute a
         # deterministic or native adapter; defaults to the import-probing
@@ -265,7 +277,7 @@ class OfflineEvaluator:
             candidate_choices.append(candidate_tool)
             scored_rows.append(self._score_decision(row=row, candidate_tool=candidate_tool))
 
-        metrics = compute_policy_metrics(scored_rows, support_threshold=self.support_threshold)
+        metrics = compute_policy_metrics(scored_rows, support_threshold=self.support_threshold, weights=self.weights)
         if metrics.low_support:
             warnings.append(
                 EvalWarning(
@@ -299,12 +311,21 @@ class OfflineEvaluator:
         skdr_summary = self.skdr_adapter.summarize(scored_rows)
         warnings.extend(skdr_summary.warnings)
 
+        confidence = (
+            bootstrap_metric_intervals(
+                scored_rows, metrics, weights=self.weights, support_threshold=self.support_threshold
+            )
+            if self.compute_confidence
+            else None
+        )
+
         return PolicyEvaluationResult(
             policy_name=policy_name,
             metrics=metrics,
             warnings=warnings,
             scored_rows=scored_rows,
             off_policy=off_policy,
+            confidence=confidence,
         )
 
     def evaluate_many(self, policies: dict[str, Any]) -> list[PolicyEvaluationResult]:

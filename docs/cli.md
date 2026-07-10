@@ -55,12 +55,14 @@ Evaluate the built-in candidate policies against logged decisions.
 | `--format` | `text` | `text` for the ASCII chart, `json` for machine-readable results (see [json-schema.md](json-schema.md)). |
 | `--dump-decisions` | _off_ | Directory to write one `<policy>_decisions.csv` per policy for drill-down analysis. |
 | `--policies` | built-in set | Directory of policy-candidate YAML files to evaluate instead of the built-in set. Requires the optional `config` extra (`pip install -e .[config]`). |
+| `--weights` | built-in weights | JSON file overriding the composite-score weights (keys: `success`, `correct_tool`, `safety`, `unresolved`, `cost`, `latency`). See [evaluation_methodology.md](evaluation_methodology.md). |
 
 ```bash
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --format json
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --dump-decisions out/
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --policies examples/policy_candidates/
+agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --weights weights.json
 ```
 
 The built-in candidate set (`baseline`, `cost_aware`, `strict_policy`,
@@ -77,6 +79,7 @@ Write the Markdown evaluation report (optionally also JSON).
 | `--output` | required | Markdown report path (written atomically). |
 | `--json-output` | _off_ | Also write machine-readable JSON results to this path. |
 | `--policies` | built-in set | Directory of policy-candidate YAML files to evaluate instead of the built-in set. Requires the optional `config` extra. |
+| `--weights` | built-in weights | JSON file overriding the composite-score weights. See [evaluation_methodology.md](evaluation_methodology.md). |
 
 ```bash
 agent-routing-eval-lab report --input examples/logged_decisions.sample.csv --output reports/example_report.md

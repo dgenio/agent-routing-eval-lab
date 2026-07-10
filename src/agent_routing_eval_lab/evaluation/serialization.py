@@ -14,8 +14,9 @@ from agent_routing_eval_lab.evaluation.evaluator import PolicyEvaluationResult, 
 # "2": warnings became structured objects ({code, severity, message}) instead of
 #      plain strings (issue #65).
 #
-# The additive ``policies[].off_policy`` object (issue #2) does not bump the
-# version: adding a field is backward-compatible per the stability policy below.
+# The additive ``policies[].off_policy`` (issue #2) and ``policies[].confidence``
+# (issue #115) objects do not bump the version: adding a field is
+# backward-compatible per the stability policy below.
 SCHEMA_VERSION = "2"
 
 
@@ -43,6 +44,7 @@ def results_to_dict(
                 "policy_name": result.policy_name,
                 "metrics": asdict(result.metrics),
                 "off_policy": result.off_policy.to_dict() if result.off_policy is not None else None,
+                "confidence": result.confidence.to_dict() if result.confidence is not None else None,
                 "warnings": [warning.to_dict() for warning in result.warnings],
             }
             for result in ranked

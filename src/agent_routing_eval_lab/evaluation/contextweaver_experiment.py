@@ -89,7 +89,7 @@ def run_contextweaver_experiment(
     logged_rows: list[dict[str, Any]], *, bounded_max_cards: int = 4
 ) -> ContextWeaverExperiment:
     """Evaluate a bounded vs an unbounded ContextWeaver variant on the same logs."""
-    evaluator = OfflineEvaluator(logged_rows)
+    evaluator = OfflineEvaluator(logged_rows, compute_confidence=False)
     bounded = _arm(f"contextweaver_bounded_{bounded_max_cards}", logged_rows, evaluator, bounded_max_cards)
     unbounded = _arm("contextweaver_unbounded", logged_rows, evaluator, UNBOUNDED_MAX_CARDS)
     return ContextWeaverExperiment(bounded=bounded, unbounded=unbounded)

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, fields
+from pathlib import Path
 from statistics import mean
 
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
@@ -17,6 +19,59 @@ _MAX_TOOL_LATENCY_MS = max((spec.avg_latency_ms for spec in TOOL_CATALOG.values(
 # under-supported. Exposed as the structured ``PolicyMetrics.low_support`` flag so
 # consumers test the boolean instead of substring-matching the warning text.
 LOW_SUPPORT_WARN_SHARE = 0.15
+
+
+@dataclass(frozen=True)
+class ScoreWeights:
+    """Weights of the composite ``score`` (see docs/evaluation_methodology.md).
+
+    The composite is a business-tunable weighted average — a refund agent weights
+    safety far higher than a docs-search agent — so the weights are data here, not
+    magic numbers baked into the formula. Each component is in [0, 1] (quality and
+    "1 - badness" terms), the weights are scaled by 100, and by default they sum to
+    1.0 so the score lands on a 0-100 scale.
+
+    Defaults and rationale:
+
+    - ``success`` (0.40): resolving the user's request correctly is the primary
+      goal, so it carries the most weight.
+    - ``correct_tool`` (0.20): picking the oracle tool is the routing quality
+      signal, weighted below end-to-end success.
+    - ``safety`` (0.15): ``1 - unsafe_action_rate``. A soft score term; hard safety
+      vetoes live in the rollout recommendation (report), not here.
+    - ``unresolved`` (0.10): ``1 - unresolved_request_rate``, penalizing requests
+      left hanging even when no wrong action was taken.
+    - ``cost`` / ``latency`` (0.075 each): efficiency terms on catalog-normalized
+      cost and latency, deliberately the smallest weights.
+    """
+
+    success: float = 0.40
+    correct_tool: float = 0.20
+    safety: float = 0.15
+    unresolved: float = 0.10
+    cost: float = 0.075
+    latency: float = 0.075
+
+    def to_dict(self) -> dict[str, float]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
+
+    @classmethod
+    def from_json(cls, path: Path) -> "ScoreWeights":
+        """Load weights from a JSON object file; unknown keys are rejected."""
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"weights config {path} is not valid JSON: {exc}") from exc
+        if not isinstance(raw, dict):
+            raise ValueError(f"weights config {path} must be a JSON object, got {type(raw).__name__}")
+        allowed = {field.name for field in fields(cls)}
+        unknown = set(raw) - allowed
+        if unknown:
+            raise ValueError(f"weights config {path} has unknown key(s): {', '.join(sorted(unknown))}")
+        return cls(**{key: float(value) for key, value in raw.items()})
+
+
+DEFAULT_WEIGHTS = ScoreWeights()
 
 
 @dataclass
@@ -39,7 +94,9 @@ def _ratio(values: list[bool]) -> float:
     return mean(float(value) for value in values) if values else 0.0
 
 
-def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> PolicyMetrics:
+def compute_policy_metrics(
+    rows: list[dict], support_threshold: int = 5, *, weights: ScoreWeights = DEFAULT_WEIGHTS
+) -> PolicyMetrics:
     if not rows:
         return PolicyMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "No rows provided.", 0.0, False, 0.0)
 
@@ -65,12 +122,12 @@ def compute_policy_metrics(rows: list[dict], support_threshold: int = 5) -> Poli
     normalized_latency = min(avg_latency / _MAX_TOOL_LATENCY_MS, 1.0)
 
     score = 100 * (
-        0.40 * success_rate
-        + 0.20 * correct_tool_rate
-        + 0.15 * (1 - unsafe_rate)
-        + 0.10 * (1 - unresolved_rate)
-        + 0.075 * (1 - normalized_cost)
-        + 0.075 * (1 - normalized_latency)
+        weights.success * success_rate
+        + weights.correct_tool * correct_tool_rate
+        + weights.safety * (1 - unsafe_rate)
+        + weights.unresolved * (1 - unresolved_rate)
+        + weights.cost * (1 - normalized_cost)
+        + weights.latency * (1 - normalized_latency)
     )
 
     return PolicyMetrics(

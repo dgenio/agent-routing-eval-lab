@@ -15,6 +15,7 @@ from agent_routing_eval_lab.data.generate_synthetic_logs import generate_synthet
 from agent_routing_eval_lab.evaluation.diff import DiffResult, compute_decision_diffs
 from agent_routing_eval_lab.evaluation.evaluator import OfflineEvaluator, load_logged_decisions, rank_results
 from agent_routing_eval_lab.evaluation.gates import GatePolicy, apply_gates, load_gate_policy, violations_to_dict
+from agent_routing_eval_lab.evaluation.metrics import DEFAULT_WEIGHTS, ScoreWeights
 from agent_routing_eval_lab.evaluation.report import write_markdown_report
 from agent_routing_eval_lab.evaluation.serialization import results_to_json
 from agent_routing_eval_lab.evaluation.validation import validate_logged_decisions
@@ -92,9 +93,21 @@ def _resolve_policies(args: argparse.Namespace) -> dict[str, object] | None:
     return load_policy_candidates(policies_dir)
 
 
-def _evaluate(input_path: Path, policies: dict[str, object] | None = None):
+def _resolve_weights(args: argparse.Namespace) -> ScoreWeights:
+    """Load composite-score weights from ``--weights PATH`` (JSON) or use defaults."""
+    weights_path = getattr(args, "weights", None)
+    if weights_path is None:
+        return DEFAULT_WEIGHTS
+    return ScoreWeights.from_json(weights_path)
+
+
+def _evaluate(
+    input_path: Path,
+    policies: dict[str, object] | None = None,
+    weights: ScoreWeights = DEFAULT_WEIGHTS,
+):
     logs = load_logged_decisions(input_path)
-    evaluator = OfflineEvaluator(logs)
+    evaluator = OfflineEvaluator(logs, weights=weights)
     return logs, evaluator.evaluate_many(policies if policies is not None else _policies())
 
 
@@ -121,7 +134,7 @@ def cmd_generate_data(args: argparse.Namespace) -> int:
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
-    logs, results = _evaluate(args.input, _resolve_policies(args))
+    logs, results = _evaluate(args.input, _resolve_policies(args), _resolve_weights(args))
     if args.dump_decisions is not None:
         _dump_decisions(results, args.dump_decisions)
 
@@ -137,7 +150,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    logs, results = _evaluate(args.input, _resolve_policies(args))
+    logs, results = _evaluate(args.input, _resolve_policies(args), _resolve_weights(args))
     write_markdown_report(args.output, results)
     print(f"Wrote report to {args.output}")
     if args.json_output is not None:
@@ -335,6 +348,13 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="Load candidate policies from a directory of YAML files (requires the 'config' extra)",
     )
+    evaluate.add_argument(
+        "--weights",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="JSON file overriding the composite-score weights (see docs/evaluation_methodology.md)",
+    )
     evaluate.set_defaults(func=cmd_evaluate)
 
     report = sub.add_parser("report", help="Generate markdown report")
@@ -349,6 +369,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="DIR",
         help="Load candidate policies from a directory of YAML files (requires the 'config' extra)",
+    )
+    report.add_argument(
+        "--weights",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="JSON file overriding the composite-score weights (see docs/evaluation_methodology.md)",
     )
     report.set_defaults(func=cmd_report)
 
