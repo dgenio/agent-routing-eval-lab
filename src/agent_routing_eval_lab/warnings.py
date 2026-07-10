@@ -21,6 +21,9 @@ class WarningCode:
     SKDR_PENDING = "adapter.skdr_pending"
     SKDR_MISSING = "adapter.skdr_missing"
     UNAVAILABLE_TOOL = "router.unavailable_tool"
+    # Off-policy estimation (evaluation/off_policy.py).
+    IPS_UNAVAILABLE = "estimator.ips_unavailable"
+    OFF_POLICY_LOW_CONFIDENCE = "estimator.low_confidence"
 
 
 @dataclass(frozen=True)

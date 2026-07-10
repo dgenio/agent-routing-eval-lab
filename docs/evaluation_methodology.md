@@ -59,6 +59,52 @@ penalty (the oracle tool is, by definition, the correct and safe choice). Regret
 grows when the candidate is wrong, expensive, slow, or unsafe relative to the
 oracle.
 
+## Two questions, two methods
+
+The lab reports **two distinct views** of each candidate policy. They answer
+different questions and must not be conflated:
+
+1. **Oracle-anchored scenario replay** — every metric in the comparison table
+   (`success_rate`, `correct_tool_selection_rate`, `estimated_regret_vs_oracle`,
+   the composite `score`, etc.). These score the candidate's tool choice against
+   the labelled `oracle_tool` and the catalog utility model. They answer *"did
+   the candidate pick the tool we labelled correct, and how good is that tool?"*
+   They do **not** use the logged outcomes, so they cannot on their own prove the
+   candidate would have earned good rewards on real traffic.
+
+2. **Off-policy value estimation (IPS / SNIPS)** — `evaluation/off_policy.py`.
+   This answers the genuinely counterfactual question *"what average logged
+   reward would this candidate have earned on the logged traffic?"* using only
+   the logged `reward` and the behavior policy's `propensity_score`:
+
+   ```
+   V_IPS(π)   = (1/n) · Σ_i  [π(a_i | x_i) / μ(a_i | x_i)] · r_i
+   V_SNIPS(π) =  Σ_i w_i r_i  /  Σ_i w_i          where w_i = π(a_i|x_i)/μ(a_i|x_i)
+   ```
+
+   Because the candidate routers are deterministic, `π(a_i | x_i)` is 1 when the
+   candidate reproduces the logged action `a_i` and 0 otherwise, so IPS averages
+   `reward / propensity` over the overlapping rows and 0 elsewhere. SNIPS
+   self-normalizes to reduce variance.
+
+### What the off-policy estimate can and cannot prove
+
+- It **can** estimate a candidate's expected reward without deploying it, when
+  the logs record honest propensities and rewards and the candidate's actions
+  overlap the logged actions.
+- It **cannot** say anything reliable where the candidate routes into actions the
+  logs rarely or never took. The estimator reports the effective sample size and
+  the match rate, and **flags the estimate `low_confidence`** (a
+  `estimator.low_confidence` warning) rather than presenting a high-variance
+  extrapolation as certain. This is deliberately the opposite of substituting
+  oracle truth for missing support.
+- When the logs carry no `propensity_score`/`reward` columns, the estimate is
+  marked unavailable (`estimator.ips_unavailable`) and only the oracle-anchored
+  metrics are reported. Nothing is silently faked.
+
+The optional native `skdr-eval` doubly-robust cross-check is tracked in issue #47
+and is not wired here; the adapter says so explicitly instead of pretending.
+
 ## Support/Coverage Risk
 
 Offline estimates are less trustworthy where candidate decisions are rare in historical logs. This repo computes support as count of historical `(intent, chosen_tool)` matches and warns when low-support share is high.

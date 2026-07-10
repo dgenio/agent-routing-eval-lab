@@ -30,6 +30,16 @@ dashboards, and downstream scripts can rely on.
         "low_support": false,
         "score": 83.41
       },
+      "off_policy": {
+        "available": true,
+        "ips": 0.71,
+        "snips": 0.74,
+        "n": 300,
+        "matched": 214,
+        "effective_sample_size": 118.4,
+        "low_confidence": false,
+        "reason": "sufficient overlap (match_rate=71.3%, ESS=118.4)"
+      },
       "warnings": [
         {"code": "coverage.low_support", "severity": "warning", "message": "…"}
       ]
@@ -49,7 +59,8 @@ dashboards, and downstream scripts can rely on.
 | `ranking` | string[] | Policy names ordered by descending score. |
 | `policies` | object[] | One entry per policy, in ranking order. |
 | `policies[].policy_name` | string | Policy identifier. |
-| `policies[].metrics` | object | All fields of `PolicyMetrics` (see `evaluation/metrics.py`). |
+| `policies[].metrics` | object | All fields of `PolicyMetrics` (see `evaluation/metrics.py`). These are oracle-anchored scenario-replay metrics. |
+| `policies[].off_policy` | object \| null | IPS/SNIPS off-policy value estimate against the logged reward (see `evaluation/off_policy.py`). `available` is `false` — and `ips`/`snips` are `null` — when the logs carry no `propensity_score`/`reward`. `low_confidence` flags estimates resting on thin overlap with the logged actions. |
 | `policies[].warnings` | object[] | Structured diagnostics: `{code, severity, message}`. `severity` is one of `info`, `warning`, `error`. |
 
 Per-decision rows are intentionally **not** in this payload; use

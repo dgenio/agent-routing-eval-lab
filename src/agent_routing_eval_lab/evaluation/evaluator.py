@@ -10,6 +10,7 @@ from agent_routing_eval_lab.adapters.skdr_eval_adapter import SkdrEvalAdapter
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
 from agent_routing_eval_lab.data.schemas import TOOL_CATALOG
 from agent_routing_eval_lab.evaluation.metrics import PolicyMetrics, compute_policy_metrics
+from agent_routing_eval_lab.evaluation.off_policy import OffPolicyEstimate, estimate_off_policy
 from agent_routing_eval_lab.warnings import EvalWarning, WarningCode
 
 
@@ -57,6 +58,10 @@ class PolicyEvaluationResult:
     # without re-running the evaluator. Defaults to an empty list to keep existing
     # positional/keyword constructors working.
     scored_rows: list[dict[str, Any]] = field(default_factory=list)
+    # Honest IPS/SNIPS off-policy value estimate against the logged reward, or an
+    # ``available=False`` estimate when the logs carry no propensity/reward signal.
+    # Additive; defaults to ``None`` so existing constructors keep working.
+    off_policy: OffPolicyEstimate | None = None
 
 
 def rank_results(results: list[PolicyEvaluationResult]) -> list[PolicyEvaluationResult]:
@@ -140,6 +145,13 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
                 str(row["approval_granted"]), column="approval_granted", request_id=request_id
             )
             row["unsafe_action"] = _parse_bool(str(row["unsafe_action"]), column="unsafe_action", request_id=request_id)
+            # Optional off-policy columns: parse to float only when present and
+            # non-empty, so older logs without them still load unchanged.
+            for optional_column in ("propensity_score", "reward"):
+                if optional_column in row and str(row[optional_column]).strip() != "":
+                    row[optional_column] = _parse_non_negative_float(
+                        str(row[optional_column]), column=optional_column, request_id=request_id
+                    )
             rows.append(row)
     return rows
 
@@ -223,6 +235,7 @@ class OfflineEvaluator:
 
     def evaluate_policy(self, policy_name: str, router: Any) -> PolicyEvaluationResult:
         scored_rows: list[dict[str, Any]] = []
+        candidate_choices: list[str] = []
         warnings: list[EvalWarning] = []
 
         for row in self.logged_rows:
@@ -249,6 +262,7 @@ class OfflineEvaluator:
                     )
                 )
                 candidate_tool = available_tools[0]
+            candidate_choices.append(candidate_tool)
             scored_rows.append(self._score_decision(row=row, candidate_tool=candidate_tool))
 
         metrics = compute_policy_metrics(scored_rows, support_threshold=self.support_threshold)
@@ -261,11 +275,36 @@ class OfflineEvaluator:
                 )
             )
 
+        # Honest off-policy value estimate from the logged reward (distinct from the
+        # oracle-anchored metrics above). Reported alongside them, with an explicit
+        # diagnostic when the logs cannot support it or the overlap is too thin.
+        off_policy = estimate_off_policy(self.logged_rows, candidate_choices)
+        if not off_policy.available:
+            warnings.append(
+                EvalWarning(
+                    code=WarningCode.IPS_UNAVAILABLE,
+                    severity="info",
+                    message=f"{policy_name}: {off_policy.reason}",
+                )
+            )
+        elif off_policy.low_confidence:
+            warnings.append(
+                EvalWarning(
+                    code=WarningCode.OFF_POLICY_LOW_CONFIDENCE,
+                    severity="warning",
+                    message=f"{policy_name}: off-policy estimate is low-confidence — {off_policy.reason}",
+                )
+            )
+
         skdr_summary = self.skdr_adapter.summarize(scored_rows)
         warnings.extend(skdr_summary.warnings)
 
         return PolicyEvaluationResult(
-            policy_name=policy_name, metrics=metrics, warnings=warnings, scored_rows=scored_rows
+            policy_name=policy_name,
+            metrics=metrics,
+            warnings=warnings,
+            scored_rows=scored_rows,
+            off_policy=off_policy,
         )
 
     def evaluate_many(self, policies: dict[str, Any]) -> list[PolicyEvaluationResult]:
