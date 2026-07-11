@@ -154,12 +154,23 @@ def load_logged_decisions(path: Path) -> list[dict[str, Any]]:
             )
             row["unsafe_action"] = _parse_bool(str(row["unsafe_action"]), column="unsafe_action", request_id=request_id)
             # Optional off-policy columns: parse to float only when present and
-            # non-empty, so older logs without them still load unchanged.
+            # non-empty, so older logs without them still load unchanged. Enforce
+            # the documented bounds (propensity in (0, 1], reward in [0, 1]) at load
+            # so out-of-range values fail loudly instead of silently distorting
+            # IPS/SNIPS or getting skipped downstream.
             for optional_column in ("propensity_score", "reward"):
                 if optional_column in row and str(row[optional_column]).strip() != "":
-                    row[optional_column] = _parse_non_negative_float(
+                    parsed = _parse_non_negative_float(
                         str(row[optional_column]), column=optional_column, request_id=request_id
                     )
+                    if parsed > 1.0:
+                        raise ValueError(f"request {request_id}: '{optional_column}' must be <= 1.0, got {parsed}")
+                    if optional_column == "propensity_score" and parsed == 0.0:
+                        raise ValueError(
+                            f"request {request_id}: 'propensity_score' must be > 0 "
+                            "(a logged action cannot have zero probability)"
+                        )
+                    row[optional_column] = parsed
             rows.append(row)
     return rows
 

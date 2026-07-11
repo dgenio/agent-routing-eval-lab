@@ -38,3 +38,22 @@ def test_load_policy_candidates_rejects_unknown_strategy(tmp_path) -> None:
     (tmp_path / "p.yaml").write_text("name: weird\nstrategy: does-not-exist\n", encoding="utf-8")
     with pytest.raises(ValueError, match="unknown strategy"):
         load_policy_candidates(tmp_path)
+
+
+def test_load_tool_catalog_rejects_non_mapping_entry(tmp_path) -> None:
+    bad = tmp_path / "catalog.yaml"
+    bad.write_text("tools:\n  - just_a_string\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be a mapping"):
+        load_tool_catalog(bad)
+
+
+def test_load_tool_catalog_rejects_duplicate_tool_names(tmp_path) -> None:
+    bad = tmp_path / "catalog.yaml"
+    bad.write_text(
+        "tools:\n"
+        "  - name: x.y\n    avg_cost: 0.1\n    avg_latency_ms: 10\n"
+        "  - name: x.y\n    avg_cost: 0.2\n    avg_latency_ms: 20\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="duplicate tool name"):
+        load_tool_catalog(bad)

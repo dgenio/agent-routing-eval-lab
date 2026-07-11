@@ -114,6 +114,28 @@ def test_load_logged_decisions_rejects_invalid_numeric_values(tmp_path, column: 
         load_logged_decisions(path)
 
 
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        ("propensity_score", "1.5", "must be <= 1.0"),
+        ("propensity_score", "0", "must be > 0"),
+        ("reward", "2.0", "must be <= 1.0"),
+    ],
+)
+def test_load_logged_decisions_enforces_offpolicy_bounds(tmp_path, column: str, value: str, message: str) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row[column] = value
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match=message):
+        load_logged_decisions(path)
+
+
 class _RecordingRouter:
     """Router that records the metadata dict it is handed at decision time."""
 

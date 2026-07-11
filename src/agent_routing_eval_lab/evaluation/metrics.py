@@ -68,7 +68,13 @@ class ScoreWeights:
         unknown = set(raw) - allowed
         if unknown:
             raise ValueError(f"weights config {path} has unknown key(s): {', '.join(sorted(unknown))}")
-        return cls(**{key: float(value) for key, value in raw.items()})
+        coerced: dict[str, float] = {}
+        for key, value in raw.items():
+            try:
+                coerced[key] = float(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"weights config {path}: '{key}' must be a number, got {value!r}") from exc
+        return cls(**coerced)
 
 
 DEFAULT_WEIGHTS = ScoreWeights()

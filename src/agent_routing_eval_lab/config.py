@@ -60,12 +60,18 @@ def load_tool_catalog(path: Path) -> dict[str, ToolSpec]:
         "access",
         "risk_tier",
     }
+    if not isinstance(raw["tools"], list):
+        raise ValueError(f"{path}: 'tools' must be a list, got {type(raw['tools']).__name__}")
     catalog: dict[str, ToolSpec] = {}
-    for entry in raw["tools"]:
+    for index, entry in enumerate(raw["tools"]):
+        if not isinstance(entry, dict):
+            raise ValueError(f"{path}: tools[{index}] must be a mapping, got {type(entry).__name__}")
         unknown = set(entry) - allowed
         if unknown:
             name = entry.get("name", "?")
             raise ValueError(f"{path}: tool '{name}' has unknown key(s): {', '.join(sorted(unknown))}")
+        if entry["name"] in catalog:
+            raise ValueError(f"{path}: duplicate tool name '{entry['name']}'")
         spec = ToolSpec(
             name=entry["name"],
             avg_cost=float(entry["avg_cost"]),

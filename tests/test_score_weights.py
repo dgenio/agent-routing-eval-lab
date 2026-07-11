@@ -46,6 +46,11 @@ def test_weights_from_json_round_trip_and_rejects_unknown_keys(tmp_path) -> None
     with pytest.raises(ValueError, match="unknown key"):
         ScoreWeights.from_json(bad)
 
+    non_numeric = tmp_path / "nonnum.json"
+    non_numeric.write_text('{"success": "high"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="must be a number"):
+        ScoreWeights.from_json(non_numeric)
+
 
 def test_reweighting_changes_ranking() -> None:
     # cost_aware picks cheap tools but resolves less; baseline resolves more but

@@ -106,8 +106,8 @@ def _confidence_section(ranked: list[PolicyEvaluationResult]) -> list[str]:
         "",
         f"Seeded bootstrap, {sample.confidence:.0%} interval over {sample.iterations} resamples.",
         "",
-        "| Policy | Score (CI) | Success (CI) | Unsafe (CI) |",
-        "|---|---|---|---|",
+        "| Policy | Score (CI) | Success (CI) | Unsafe (CI) | Avg Cost (CI) | Avg Latency (CI) |",
+        "|---|---|---|---|---|---|",
     ]
     for result in ranked:
         if result.confidence is None:
@@ -115,10 +115,14 @@ def _confidence_section(ranked: list[PolicyEvaluationResult]) -> list[str]:
         score = result.confidence.intervals["score"]
         success = result.confidence.intervals["success_rate"]
         unsafe = result.confidence.intervals["unsafe_action_rate"]
+        cost = result.confidence.intervals["average_cost"]
+        latency = result.confidence.intervals["average_latency_ms"]
         lines.append(
             f"| {result.policy_name} | {score.point:.1f} [{score.low:.1f}, {score.high:.1f}] | "
             f"{success.point:.2%} [{success.low:.2%}, {success.high:.2%}] | "
-            f"{unsafe.point:.2%} [{unsafe.low:.2%}, {unsafe.high:.2%}] |"
+            f"{unsafe.point:.2%} [{unsafe.low:.2%}, {unsafe.high:.2%}] | "
+            f"${cost.point:.3f} [${cost.low:.3f}, ${cost.high:.3f}] | "
+            f"{latency.point:.1f} [{latency.low:.1f}, {latency.high:.1f}] |"
         )
     lines.append("")
     return lines
@@ -143,7 +147,9 @@ def _off_policy_section(ranked: list[PolicyEvaluationResult]) -> list[str]:
         if estimate is None:
             continue
         if not estimate.available:
-            lines.append(f"| {result.policy_name} | n/a | n/a | 0/{estimate.n} | unavailable (no logged reward) |")
+            lines.append(
+                f"| {result.policy_name} | n/a | n/a | 0/{estimate.n} | unavailable — missing propensity_score/reward |"
+            )
             continue
         ips = "n/a" if estimate.ips is None else f"{estimate.ips:.3f}"
         snips = "n/a" if estimate.snips is None else f"{estimate.snips:.3f}"
