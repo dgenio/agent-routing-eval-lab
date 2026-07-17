@@ -51,6 +51,19 @@ def test_weights_from_json_round_trip_and_rejects_unknown_keys(tmp_path) -> None
     with pytest.raises(ValueError, match="must be a number"):
         ScoreWeights.from_json(non_numeric)
 
+    # A negative weight would reward the wrong thing (every component is a
+    # "higher is better" term) and silently distort the composite score.
+    negative = tmp_path / "neg.json"
+    negative.write_text('{"success": -0.5}', encoding="utf-8")
+    with pytest.raises(ValueError, match="non-negative"):
+        ScoreWeights.from_json(negative)
+
+    # Partial overrides need not sum to 1.0: unspecified keys keep their defaults,
+    # so a non-summing subset is intentionally accepted.
+    partial = tmp_path / "partial.json"
+    partial.write_text('{"success": 0.5, "safety": 0.5}', encoding="utf-8")
+    assert ScoreWeights.from_json(partial).success == 0.5
+
 
 def test_reweighting_changes_ranking() -> None:
     # cost_aware picks cheap tools but resolves less; baseline resolves more but

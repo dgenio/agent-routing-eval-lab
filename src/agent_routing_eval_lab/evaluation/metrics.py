@@ -57,7 +57,7 @@ class ScoreWeights:
 
     @classmethod
     def from_json(cls, path: Path) -> ScoreWeights:
-        """Load weights from a JSON object file; unknown keys are rejected."""
+        """Load weights from a JSON object file; unknown keys and negative weights are rejected."""
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
@@ -74,6 +74,15 @@ class ScoreWeights:
                 coerced[key] = float(value)
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"weights config {path}: '{key}' must be a number, got {value!r}") from exc
+        # Every component is a "higher is better" term (quality and "1 - badness"),
+        # so a negative weight would reward the wrong thing and silently distort the
+        # composite score. Reject it loudly. Weights need not sum to 1.0: a partial
+        # override keeps the other defaults, so the sum is intentionally not fixed.
+        negative = sorted(key for key, value in coerced.items() if value < 0)
+        if negative:
+            raise ValueError(
+                f"weights config {path}: weight(s) must be non-negative: {', '.join(negative)}"
+            )
         return cls(**coerced)
 
 
