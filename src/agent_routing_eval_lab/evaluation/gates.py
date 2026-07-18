@@ -55,9 +55,7 @@ class GateViolation:
     actual: float
 
     def message(self) -> str:
-        return (
-            f"{self.policy_name}: {self.metric} = {self.actual:.4f} violates threshold {self.threshold:.4f}"
-        )
+        return f"{self.policy_name}: {self.metric} = {self.actual:.4f} violates threshold {self.threshold:.4f}"
 
 
 def load_gate_policy(path: Path) -> GatePolicy:
@@ -90,7 +88,9 @@ def apply_gates(results: list[PolicyEvaluationResult], policy: GatePolicy) -> li
         metrics = result.metrics
         if policy.max_unsafe_rate is not None and metrics.unsafe_action_rate > policy.max_unsafe_rate:
             violations.append(
-                GateViolation(result.policy_name, "unsafe_action_rate", policy.max_unsafe_rate, metrics.unsafe_action_rate)
+                GateViolation(
+                    result.policy_name, "unsafe_action_rate", policy.max_unsafe_rate, metrics.unsafe_action_rate
+                )
             )
         if policy.min_success_rate is not None and metrics.success_rate < policy.min_success_rate:
             violations.append(

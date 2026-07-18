@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import random
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from agent_routing_eval_lab.data.safety_rules import is_unsafe_action
-from agent_routing_eval_lab.data.schemas import DecisionRecord, TOOL_CATALOG
+from agent_routing_eval_lab.data.schemas import TOOL_CATALOG, DecisionRecord
 from agent_routing_eval_lab.io_utils import atomic_write_csv
-
 
 # The historical-log generator models the established nine-tool support operation.
 # It deliberately samples from this fixed universe rather than ``TOOL_CATALOG.keys()``
@@ -62,18 +62,59 @@ def _sample_available_tools(rng: random.Random, oracle_tool: str) -> list[str]:
     return sorted(set(selected))
 
 
-def _logged_policy_choice(rng: random.Random, intent: str, oracle_tool: str, available_tools: list[str]) -> str:
-    if intent == "refund_request" and rng.random() < 0.22:
-        return "billing.get_invoice" if "billing.get_invoice" in available_tools else available_tools[0]
-    if intent == "draft_reply" and rng.random() < 0.18 and "email.send_reply" in available_tools:
-        return "email.send_reply"
-    if intent == "send_reply" and rng.random() < 0.2 and "email.draft_reply" in available_tools:
-        return "email.draft_reply"
-    if intent == "ambiguous" and rng.random() < 0.5 and "support.search_tickets" in available_tools:
-        return "support.search_tickets"
-    if oracle_tool in available_tools and rng.random() < 0.8:
-        return oracle_tool
-    return rng.choice(available_tools)
+# Two logged policies with different exploration/exploitation balance. This gives
+# the dataset ≥2 ``policy_version`` values and varies support/coverage across rows
+# (issue #7): the tighter ``historical_v2`` concentrates mass on the oracle tool,
+# so counterfactual estimates for candidate policies that pick rarely-logged tools
+# are thinner in that slice. ``oracle_weight`` is the unnormalized mass added to
+# the oracle tool; ``explore_floor`` is the mass every available tool gets.
+_LOGGING_POLICIES: dict[str, dict[str, float]] = {
+    "historical_v1": {"oracle_weight": 1.0, "explore_floor": 0.08},
+    "historical_v2": {"oracle_weight": 1.8, "explore_floor": 0.03},
+}
+
+# Intent-specific confusions the logging policies are prone to, as extra
+# unnormalized mass on a plausible-but-wrong tool. Encoding these as weights
+# (rather than branchy early returns) lets us record a real propensity for the
+# tool actually sampled, which is what IPS/SNIPS require.
+_CONFUSION_MASS: dict[str, tuple[str, float]] = {
+    "refund_request": ("billing.get_invoice", 0.35),
+    "draft_reply": ("email.send_reply", 0.28),
+    "send_reply": ("email.draft_reply", 0.32),
+    "ambiguous": ("support.search_tickets", 0.9),
+}
+
+
+def _logged_policy_distribution(
+    policy_version: str, intent: str, oracle_tool: str, available_tools: list[str]
+) -> dict[str, float]:
+    """Return the logging policy's probability distribution over available tools.
+
+    A proper normalized distribution (rather than the previous branchy sampler)
+    so the generator can record the exact ``propensity_score`` of whatever tool it
+    samples — the quantity honest off-policy estimation divides by.
+    """
+    params = _LOGGING_POLICIES[policy_version]
+    weights = {tool: params["explore_floor"] for tool in available_tools}
+    if oracle_tool in weights:
+        weights[oracle_tool] += params["oracle_weight"]
+    confusion = _CONFUSION_MASS.get(intent)
+    if confusion is not None and confusion[0] in weights:
+        weights[confusion[0]] += confusion[1]
+    total = sum(weights.values())
+    return {tool: weight / total for tool, weight in weights.items()}
+
+
+def _sample_from_distribution(rng: random.Random, distribution: dict[str, float]) -> str:
+    """Sample a tool from ``distribution`` using a single deterministic draw."""
+    threshold = rng.random()
+    cumulative = 0.0
+    for tool, probability in distribution.items():
+        cumulative += probability
+        if threshold <= cumulative:
+            return tool
+    # Floating-point guard: return the last tool if rounding left us just short.
+    return next(reversed(distribution))
 
 
 def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionRecord]:
@@ -90,7 +131,13 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
         query = template.format(customer_id=customer_id)
         timestamp = (start + timedelta(minutes=idx * 6)).isoformat()
         available_tools = _sample_available_tools(rng, oracle_tool)
-        chosen_tool = _logged_policy_choice(rng, intent, oracle_tool, available_tools)
+
+        # Temporal drift: the operation tightened its logging policy partway
+        # through the window, so later rows come from ``historical_v2``.
+        policy_version = "historical_v1" if idx < rows * 0.6 else "historical_v2"
+        distribution = _logged_policy_distribution(policy_version, intent, oracle_tool, available_tools)
+        chosen_tool = _sample_from_distribution(rng, distribution)
+        propensity_score = round(distribution[chosen_tool], 6)
 
         spec = TOOL_CATALOG[chosen_tool]
         requires_approval = spec.requires_approval
@@ -106,18 +153,36 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
         wrong_tool = chosen_tool != oracle_tool
         insufficient_coverage = oracle_tool not in available_tools
         expensive_misroute = wrong_tool and spec.avg_cost > TOOL_CATALOG[oracle_tool].avg_cost
+        # Over-escalation: the logging policy reached for an approval-gated /
+        # irreversible write when the correct tool was a cheap read that needs no
+        # approval (e.g. grabbing a refund tool for an invoice lookup).
+        over_escalation = (
+            wrong_tool
+            and (spec.requires_approval or spec.risk_tier == "irreversible")
+            and not TOOL_CATALOG[oracle_tool].requires_approval
+            and TOOL_CATALOG[oracle_tool].risk_tier == "safe"
+        )
 
         success = not wrong_tool and not unsafe_action and (approval_granted or not requires_approval)
-        if success and rng.random() < 0.03:
+        # Stale-data retry: a correct read whose backing data was stale, so the
+        # logged attempt did not actually resolve the request and would be retried.
+        stale_data_retry = success and spec.access == "read" and rng.random() < 0.05
+        if stale_data_retry:
+            success = False
+        elif success and rng.random() < 0.03:
             success = False
 
         failure_type = ""
-        tool_result = "resolved" if success else "not_resolved"
+        tool_result = "resolved" if success else ("stale_retry" if stale_data_retry else "not_resolved")
 
         if insufficient_coverage:
             failure_type = "insufficient_tool_coverage"
         elif unsafe_action:
             failure_type = "unsafe_action"
+        elif stale_data_retry:
+            failure_type = "stale_data_retry"
+        elif over_escalation:
+            failure_type = "over_escalation"
         elif intent == "ambiguous" and wrong_tool:
             failure_type = "ambiguous_request"
         elif intent == "policy_lookup" and chosen_tool != "docs.search_policy":
@@ -132,6 +197,10 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
         cost = round(spec.avg_cost * rng.uniform(0.9, 1.2), 4)
         latency = int(spec.avg_latency_ms * rng.uniform(0.85, 1.25))
         human_rating = 5 if success else rng.choice([1, 2, 3])
+        # Logged scalar reward the off-policy estimators consume: the human rating
+        # normalized to [0, 1]. Kept derivable from an existing field so it is a
+        # real logged outcome, not an oracle re-derivation.
+        reward = round(human_rating / 5.0, 3)
 
         records.append(
             DecisionRecord(
@@ -151,36 +220,18 @@ def generate_synthetic_logs(rows: int = 300, seed: int = 7) -> list[DecisionReco
                 approval_granted=approval_granted,
                 unsafe_action=unsafe_action,
                 human_rating=human_rating,
-                policy_version="historical_v1",
+                policy_version=policy_version,
+                propensity_score=propensity_score,
+                reward=reward,
             )
         )
     return records
 
 
-def write_csv(path: Path, records: list[DecisionRecord]) -> None:
+def write_csv(path: Path, records: Sequence[DecisionRecord]) -> None:
     if not records:
         raise ValueError(
-            "write_csv requires at least one record to infer CSV headers; "
-            "got an empty list (e.g. when --rows is 0)"
+            "write_csv requires at least one record to infer CSV headers; got an empty list (e.g. when --rows is 0)"
         )
     fieldnames = list(records[0].to_dict().keys())
     atomic_write_csv(path, fieldnames, (record.to_dict() for record in records))
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate synthetic routing logs")
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--rows", type=positive_int, default=300)
-    parser.add_argument("--seed", type=int, default=7)
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
-    rows = generate_synthetic_logs(rows=args.rows, seed=args.seed)
-    write_csv(args.output, rows)
-    print(f"Wrote {len(rows)} synthetic rows to {args.output}")
-
-
-if __name__ == "__main__":
-    main()

@@ -54,12 +54,20 @@ Evaluate the built-in candidate policies against logged decisions.
 | `--input` | required | Logged-decisions CSV (see [input-schema.md](input-schema.md)). |
 | `--format` | `text` | `text` for the ASCII chart, `json` for machine-readable results (see [json-schema.md](json-schema.md)). |
 | `--dump-decisions` | _off_ | Directory to write one `<policy>_decisions.csv` per policy for drill-down analysis. |
+| `--policies` | built-in set | Directory of policy-candidate YAML files to evaluate instead of the built-in set. Requires the optional `config` extra (`pip install -e .[config]`). |
+| `--weights` | built-in weights | JSON file overriding the composite-score weights (keys: `success`, `correct_tool`, `safety`, `unresolved`, `cost`, `latency`). See [evaluation_methodology.md](evaluation_methodology.md). |
 
 ```bash
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --format json
 agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --dump-decisions out/
+agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --policies examples/policy_candidates/
+agent-routing-eval-lab evaluate --input examples/logged_decisions.sample.csv --weights weights.json
 ```
+
+The built-in candidate set (`baseline`, `cost_aware`, `strict_policy`,
+`contextweaver_v1`, `contextweaver_v2`) mirrors `examples/policy_candidates/`; a
+drift-guard test keeps them in sync.
 
 ## `report`
 
@@ -70,6 +78,8 @@ Write the Markdown evaluation report (optionally also JSON).
 | `--input` | required | Logged-decisions CSV. |
 | `--output` | required | Markdown report path (written atomically). |
 | `--json-output` | _off_ | Also write machine-readable JSON results to this path. |
+| `--policies` | built-in set | Directory of policy-candidate YAML files to evaluate instead of the built-in set. Requires the optional `config` extra. |
+| `--weights` | built-in weights | JSON file overriding the composite-score weights. See [evaluation_methodology.md](evaluation_methodology.md). |
 
 ```bash
 agent-routing-eval-lab report --input examples/logged_decisions.sample.csv --output reports/example_report.md
@@ -182,4 +192,27 @@ Exits `0` when the file is valid, `1` (with errors on stderr) otherwise. See [in
 
 ```bash
 agent-routing-eval-lab validate --input my_logs.csv
+```
+
+## `lint`
+
+Static safety/leakage lint of a schema-valid logged-decisions CSV, without running
+the full replay. Distinct from `validate` (which checks the schema): `lint` checks
+the *meaning* of the rows.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--input` | required | Logged-decisions CSV to lint. |
+| `--format` | `text` | `text` or `json` findings output. |
+| `--ignore` | _none_ | Comma-separated lint codes to suppress (e.g. `lint.oracle_unavailable`). |
+
+Checks: `lint.unavailable_chosen` (error — a logged action that was not available),
+`lint.oracle_unavailable` (warning — no candidate can match the oracle),
+`lint.bad_propensity` (warning — a propensity outside `(0, 1]`), and
+`lint.possible_oracle_leak` (warning — the logging policy is never wrong). Exits
+`1` if any **error**-severity finding is present; warnings alone still pass.
+
+```bash
+agent-routing-eval-lab lint --input examples/logged_decisions.sample.csv
+agent-routing-eval-lab lint --input my_logs.csv --ignore lint.oracle_unavailable
 ```

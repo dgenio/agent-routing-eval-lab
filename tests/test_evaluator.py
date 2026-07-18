@@ -100,9 +100,29 @@ def test_load_logged_decisions_rejects_invalid_boolean_values(tmp_path) -> None:
         ("latency_ms", "-10", "non-negative"),
     ],
 )
-def test_load_logged_decisions_rejects_invalid_numeric_values(
-    tmp_path, column: str, value: str, message: str
-) -> None:
+def test_load_logged_decisions_rejects_invalid_numeric_values(tmp_path, column: str, value: str, message: str) -> None:
+    path = tmp_path / "logs.csv"
+    row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
+    row[column] = value
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=list(row.keys()))
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match=message):
+        load_logged_decisions(path)
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        ("propensity_score", "1.5", "must be <= 1.0"),
+        ("propensity_score", "0", "must be > 0"),
+        ("reward", "2.0", "must be <= 1.0"),
+    ],
+)
+def test_load_logged_decisions_enforces_offpolicy_bounds(tmp_path, column: str, value: str, message: str) -> None:
     path = tmp_path / "logs.csv"
     row = generate_synthetic_logs(rows=1, seed=1)[0].to_dict()
     row[column] = value
@@ -142,7 +162,11 @@ def test_routers_never_receive_oracle_tool_metadata() -> None:
 def test_resolves_without_success_is_driven_by_tool_spec() -> None:
     # docs.search_policy has resolves_without_success=True, so a non-success
     # decision on it still counts as resolved (#64).
-    row = _row(intent="policy_lookup", oracle_tool="crm.search_customer", available_tools="docs.search_policy|crm.search_customer")
+    row = _row(
+        intent="policy_lookup",
+        oracle_tool="crm.search_customer",
+        available_tools="docs.search_policy|crm.search_customer",
+    )
     scored = OfflineEvaluator([row])._score_decision(row=row, candidate_tool="docs.search_policy")
     assert scored["success"] is False
     assert scored["resolved"] is True
@@ -150,7 +174,11 @@ def test_resolves_without_success_is_driven_by_tool_spec() -> None:
     # crm.search_customer does not resolve-without-success: wrong tool -> unresolved.
     scored_other = OfflineEvaluator([row])._score_decision(row=row, candidate_tool="crm.search_customer")
     assert scored_other["success"] is True  # matches oracle here
-    row2 = _row(intent="invoice_question", oracle_tool="billing.get_invoice", available_tools="crm.search_customer|billing.get_invoice")
+    row2 = _row(
+        intent="invoice_question",
+        oracle_tool="billing.get_invoice",
+        available_tools="crm.search_customer|billing.get_invoice",
+    )
     scored_wrong = OfflineEvaluator([row2])._score_decision(row=row2, candidate_tool="crm.search_customer")
     assert scored_wrong["success"] is False
     assert scored_wrong["resolved"] is False

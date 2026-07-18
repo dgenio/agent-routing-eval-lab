@@ -40,6 +40,7 @@ def test_evaluate_dump_decisions_writes_one_file_per_policy(tmp_path, sample_csv
     assert files == [
         "baseline_decisions.csv",
         "contextweaver_v1_decisions.csv",
+        "contextweaver_v2_decisions.csv",
         "cost_aware_decisions.csv",
         "strict_policy_decisions.csv",
     ]
@@ -72,7 +73,17 @@ def test_compare_unknown_policy_is_usage_error(capsys, sample_csv) -> None:
 
 def test_compare_json_reports_summary(capsys, sample_csv) -> None:
     code = main(
-        ["compare", "--input", str(sample_csv), "--policy-a", "baseline", "--policy-b", "strict_policy", "--format", "json"]
+        [
+            "compare",
+            "--input",
+            str(sample_csv),
+            "--policy-a",
+            "baseline",
+            "--policy-b",
+            "strict_policy",
+            "--format",
+            "json",
+        ]
     )
     assert code == EXIT_OK
     payload = json.loads(capsys.readouterr().out)
@@ -117,3 +128,47 @@ def test_governed_demo_writes_logs_report_and_summary(tmp_path, capsys) -> None:
     assert (out / "examples" / "governed_path_decisions.sample.csv").is_file()
     assert (out / "reports" / "governed_comparison.md").is_file()
     assert "Before/after" in capsys.readouterr().out
+
+
+def test_lint_passes_on_clean_sample_with_only_warnings(capsys, sample_csv) -> None:
+    assert main(["lint", "--input", str(sample_csv)]) == EXIT_OK
+
+
+def test_lint_reports_error_and_exits_one(tmp_path, capsys) -> None:
+    bad = tmp_path / "bad.csv"
+    # A schema-valid row whose chosen_tool was never available -> lint error.
+    header = (
+        "request_id,user_query,intent,available_tools,chosen_tool,oracle_tool,success,"
+        "cost,latency_ms,requires_approval,approval_granted,unsafe_action\n"
+    )
+    row = (
+        "r1,q,customer_lookup,crm.search_customer,billing.issue_refund,"
+        "crm.search_customer,true,0.1,100,false,false,false\n"
+    )
+    bad.write_text(header + row, encoding="utf-8")
+    assert main(["lint", "--input", str(bad)]) == EXIT_GATE_FAILED
+
+
+def test_lint_ignore_suppresses_codes(tmp_path) -> None:
+    bad = tmp_path / "bad.csv"
+    header = (
+        "request_id,user_query,intent,available_tools,chosen_tool,oracle_tool,success,"
+        "cost,latency_ms,requires_approval,approval_granted,unsafe_action\n"
+    )
+    row = (
+        "r1,q,customer_lookup,crm.search_customer,billing.issue_refund,"
+        "crm.search_customer,true,0.1,100,false,false,false\n"
+    )
+    bad.write_text(header + row, encoding="utf-8")
+    # Suppressing the error code makes the run pass.
+    assert main(["lint", "--input", str(bad), "--ignore", "lint.unavailable_chosen"]) == EXIT_OK
+
+
+def test_report_contains_decision_sections(tmp_path, sample_csv) -> None:
+    # End-to-end: report over a tiny dataset renders the decision-oriented sections.
+    report_path = tmp_path / "report.md"
+    assert main(["report", "--input", str(sample_csv), "--output", str(report_path)]) == EXIT_OK
+    text = report_path.read_text(encoding="utf-8")
+    assert "## Rollout Recommendation" in text
+    assert "## Pareto Frontier" in text
+    assert "## What This Cannot Prove" in text

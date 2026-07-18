@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -59,7 +60,7 @@ class AgentSummary:
     unresolved_rate: float
 
 
-def summarize_agent(label: str, records: list[DecisionRecord]) -> AgentSummary:
+def summarize_agent(label: str, records: Sequence[DecisionRecord]) -> AgentSummary:
     """Compute the headline safety/cost/resolution rates for one agent's run."""
     executed = [r for r in records if _executed(r)]
     return AgentSummary(
@@ -84,7 +85,7 @@ def _summary_row(summary: AgentSummary) -> str:
     )
 
 
-def _guard_verdicts(baseline_records: list[DecisionRecord]) -> list[tuple[str, str, str, str]]:
+def _guard_verdicts(baseline_records: Sequence[DecisionRecord]) -> list[tuple[str, str, str, str]]:
     """Apply the action guard to each baseline action: (request, tool, verdict, reason)."""
     rows: list[tuple[str, str, str, str]] = []
     for record in baseline_records:
@@ -100,8 +101,8 @@ def _guard_verdicts(baseline_records: list[DecisionRecord]) -> list[tuple[str, s
 
 
 def build_comparison_report(
-    baseline_records: list[DecisionRecord],
-    governed_records: list[DecisionRecord],
+    baseline_records: Sequence[DecisionRecord],
+    governed_records: Sequence[DecisionRecord],
 ) -> str:
     """Build the markdown baseline-vs-governed report (#24).
 
@@ -159,8 +160,7 @@ def build_comparison_report(
             "",
             "## What this does and does not prove",
             "",
-            "- This is offline replay on a small, synthetic, deterministic scenario set — not "
-            "production telemetry.",
+            "- This is offline replay on a small, synthetic, deterministic scenario set — not production telemetry.",
             "- It shows the *shape* of the safety/resolution trade-off and that governance changes "
             "behavior; it does not prove production safety, and the context firewall is an "
             "illustrative pattern, not a robust prompt-injection defense.",
@@ -180,14 +180,13 @@ def _recommendation(baseline: AgentSummary, governed: AgentSummary) -> str:
             "exposing any of this to production traffic."
         )
     return (
-        "**Hold.** The governed path does not reduce unsafe actions on this scenario set; investigate "
-        "before rollout."
+        "**Hold.** The governed path does not reduce unsafe actions on this scenario set; investigate before rollout."
     )
 
 
 def build_terminal_summary(
-    baseline_records: list[DecisionRecord],
-    governed_records: list[DecisionRecord],
+    baseline_records: Sequence[DecisionRecord],
+    governed_records: Sequence[DecisionRecord],
 ) -> str:
     """Short before/after summary printed by the governed demo (#27)."""
     baseline = summarize_agent("unsafe_baseline", baseline_records)
@@ -207,7 +206,7 @@ def build_terminal_summary(
 
 def write_comparison_report(
     path: Path,
-    baseline_records: list[DecisionRecord],
-    governed_records: list[DecisionRecord],
+    baseline_records: Sequence[DecisionRecord],
+    governed_records: Sequence[DecisionRecord],
 ) -> None:
     atomic_write_text(path, build_comparison_report(baseline_records, governed_records))

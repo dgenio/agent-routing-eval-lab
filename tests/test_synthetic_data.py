@@ -27,12 +27,35 @@ def test_generate_synthetic_logs_fields_and_modes() -> None:
         "unsafe_action",
         "human_rating",
         "policy_version",
+        "propensity_score",
+        "reward",
     }
     assert expected.issubset(first.keys())
 
     failure_types = {row.failure_type for row in rows if row.failure_type}
     assert "wrong_tool_selected" in failure_types or "expensive_tool_selected" in failure_types
     assert "unsafe_action" in failure_types or any(row.unsafe_action for row in rows)
+    # The two failure modes added in #7.
+    assert "stale_data_retry" in failure_types
+    assert "over_escalation" in failure_types
+
+
+def test_generate_synthetic_logs_propensity_reward_and_policy_diversity() -> None:
+    rows = generate_synthetic_logs(rows=250, seed=11)
+
+    # Propensity is a probability the logging policy actually assigned.
+    assert all(0.0 < row.propensity_score <= 1.0 for row in rows)
+    # Reward is the human_rating/5 outcome in [0, 1].
+    assert all(0.0 <= row.reward <= 1.0 for row in rows)
+    assert all(row.reward == round(row.human_rating / 5.0, 3) for row in rows)
+    # At least two logged policy versions appear (temporal drift).
+    assert {"historical_v1", "historical_v2"} <= {row.policy_version for row in rows}
+
+
+def test_generate_synthetic_logs_is_deterministic() -> None:
+    first = [r.to_dict() for r in generate_synthetic_logs(rows=64, seed=21)]
+    second = [r.to_dict() for r in generate_synthetic_logs(rows=64, seed=21)]
+    assert first == second
 
 
 def test_write_csv_rejects_empty_records(tmp_path) -> None:

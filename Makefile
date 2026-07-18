@@ -1,10 +1,16 @@
 PYTHON ?= python3
 
+# Fixed generation timestamp so `make report`/`make demo` produce byte-stable
+# reports and committed artifacts don't drift on every run (issue #75). Override
+# to use a different stamp; unset entirely to fall back to the wall clock.
+SOURCE_DATE_EPOCH ?= 1767225600
+export SOURCE_DATE_EPOCH
+
 # This Makefile uses `>` instead of tabs for recipe lines so the file stays
 # visibly consistent across editors; do not reindent recipes with tabs.
 .RECIPEPREFIX := >
 
-.PHONY: install test generate-data evaluate report demo unsafe-demo governed-demo validate gate help
+.PHONY: install test lint fmt typecheck generate-data evaluate report demo unsafe-demo governed-demo validate gate help
 
 help: ## Show available developer commands
 >@printf '%s\n' 'Available targets:'
@@ -16,6 +22,17 @@ install: ## Install the project with development dependencies
 
 test: ## Run the pytest suite
 >pytest
+
+lint: ## Lint and check formatting (ruff)
+>ruff check .
+>ruff format --check .
+
+fmt: ## Auto-format the codebase (ruff)
+>ruff format .
+>ruff check --fix .
+
+typecheck: ## Type-check the package (mypy)
+>mypy src
 
 generate-data: ## Write the sample logged-decisions CSV
 >$(PYTHON) -m agent_routing_eval_lab.cli generate-data --output examples/logged_decisions.sample.csv --rows 300

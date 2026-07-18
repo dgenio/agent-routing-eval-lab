@@ -39,9 +39,7 @@ def _preferred_pick(intent: str, card_names: list[str]) -> str:
     return card_names[0]
 
 
-def _run_scenario(
-    scenario: Scenario, index: int, adapter: ContextWeaverAdapter
-) -> GovernedDecisionRecord:
+def _run_scenario(scenario: Scenario, index: int, adapter: ContextWeaverAdapter) -> GovernedDecisionRecord:
     available = list(scenario.available_tools)
 
     # Step 1: bound the choices. Distractors beyond the budget are withheld.
@@ -104,6 +102,10 @@ def _run_scenario(
         unsafe_action=False,  # governed path honors the guard, so it never acts unsafely
         human_rating=5 if success else 3,
         policy_version=POLICY_VERSION,
+        # Deterministic single-choice agent, so its propensity for the action it
+        # took is 1.0; reward mirrors the generator's human_rating/5 convention.
+        propensity_score=1.0,
+        reward=1.0 if success else 0.6,
         cards_shown="|".join(card_names),
         tools_withheld="|".join(withheld),
         withheld_reason="bounded choice budget" if withheld else "",
@@ -133,9 +135,7 @@ def describe_run(records: list[GovernedDecisionRecord]) -> list[str]:
         template = _VERDICT_EXPLANATIONS.get(record.action_verdict, "handled {tool}.")
         detail = template.format(tool=record.chosen_tool)
         firewall = (
-            " Tool result was treated as untrusted data."
-            if record.context_firewall_action == "sanitized"
-            else ""
+            " Tool result was treated as untrusted data." if record.context_firewall_action == "sanitized" else ""
         )
         lines.append(f"{record.request_id} ({record.intent}): {detail}{firewall}")
     return lines

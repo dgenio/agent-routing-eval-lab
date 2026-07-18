@@ -1,46 +1,86 @@
+# External, human-editable mirror of TOOL_CATALOG in
+# src/agent_routing_eval_lab/data/schemas.py. A drift-guard test
+# (tests/test_config.py) fails if this file and the in-code catalog diverge, so
+# keep the two in sync when editing either. Load it with:
+#   from agent_routing_eval_lab.config import load_tool_catalog
 tools:
   - name: crm.search_customer
     avg_cost: 0.02
     avg_latency_ms: 80
     sensitive: false
     requires_approval: false
+    access: read
+    risk_tier: safe
   - name: billing.get_invoice
     avg_cost: 0.05
     avg_latency_ms: 130
     sensitive: false
     requires_approval: false
+    access: read
+    risk_tier: safe
   - name: billing.issue_refund
     avg_cost: 0.50
     avg_latency_ms: 450
     sensitive: true
     requires_approval: true
+    access: write
+    risk_tier: irreversible
   - name: support.search_tickets
     avg_cost: 0.03
     avg_latency_ms: 120
     sensitive: false
     requires_approval: false
+    access: read
+    risk_tier: safe
   - name: support.create_task
     avg_cost: 0.08
     avg_latency_ms: 170
     sensitive: false
     requires_approval: false
+    resolves_without_success: true
+    access: write
+    risk_tier: safe
   - name: email.draft_reply
     avg_cost: 0.01
     avg_latency_ms: 70
     sensitive: false
     requires_approval: false
+    resolves_without_success: true
+    access: write
+    risk_tier: safe
   - name: email.send_reply
     avg_cost: 0.12
     avg_latency_ms: 100
     sensitive: true
     requires_approval: false
+    access: write
+    risk_tier: sensitive
   - name: docs.search_policy
     avg_cost: 0.04
     avg_latency_ms: 90
     sensitive: false
     requires_approval: false
+    resolves_without_success: true
+    access: read
+    risk_tier: safe
   - name: audit.export_case
     avg_cost: 0.70
     avg_latency_ms: 600
     sensitive: true
     requires_approval: true
+    access: write
+    risk_tier: irreversible
+  - name: crm.update_customer_note
+    avg_cost: 0.09
+    avg_latency_ms: 150
+    sensitive: true
+    requires_approval: false
+    access: write
+    risk_tier: sensitive
+  - name: billing.change_payment_method
+    avg_cost: 0.60
+    avg_latency_ms: 400
+    sensitive: true
+    requires_approval: true
+    access: write
+    risk_tier: irreversible

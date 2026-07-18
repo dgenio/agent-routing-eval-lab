@@ -24,10 +24,20 @@ are ignored.
 | `requires_approval` | bool | yes | see booleans below | yes | Whether the action needed approval. |
 | `approval_granted` | bool | yes | see booleans below | yes | Whether approval was granted. |
 | `unsafe_action` | bool | yes | see booleans below | yes | Whether the logged action was unsafe. |
+| `propensity_score` | float | no | `(0, 1]` | opt-in | Probability the logging policy assigned to `chosen_tool`. Enables honest IPS/SNIPS off-policy estimates. |
+| `reward` | float | no | `[0, 1]` | opt-in | Logged scalar reward for the decision (the generator derives it from `human_rating`). Consumed by the off-policy estimators. |
 
-\* `chosen_tool` is part of the logged record but the current evaluator scores
-candidate policies against `oracle_tool`; it is retained for diffing and future
-off-policy work.
+\* `chosen_tool` is part of the logged record. The evaluator scores candidate
+policies against `oracle_tool` (oracle-anchored scenario replay) and, when
+`propensity_score` and `reward` are present, additionally reports IPS/SNIPS
+off-policy estimates against the logged reward (see
+[evaluation_methodology.md](evaluation_methodology.md)).
+
+`propensity_score` and `reward` are **optional**: when both are present the
+off-policy estimators run; when either is missing the evaluator emits an
+`estimator.ips_unavailable` diagnostic and reports only the oracle-anchored
+metrics. This keeps older logs and the governed/unsafe demo CSVs loadable
+unchanged.
 
 The synthetic generator also emits `timestamp`, `tool_result`, `failure_type`,
 `human_rating`, and `policy_version`. These are not required by the loader and
