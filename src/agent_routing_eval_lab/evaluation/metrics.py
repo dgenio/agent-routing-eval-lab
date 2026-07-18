@@ -80,9 +80,7 @@ class ScoreWeights:
         # override keeps the other defaults, so the sum is intentionally not fixed.
         negative = sorted(key for key, value in coerced.items() if value < 0)
         if negative:
-            raise ValueError(
-                f"weights config {path}: weight(s) must be non-negative: {', '.join(negative)}"
-            )
+            raise ValueError(f"weights config {path}: weight(s) must be non-negative: {', '.join(negative)}")
         return cls(**coerced)
 
 
