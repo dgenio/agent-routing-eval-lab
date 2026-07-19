@@ -151,6 +151,24 @@ Optional extensions to deterministic flows (e.g., ChainWeaver) or governance lay
 See [`docs/non-goals.md`](docs/non-goals.md) for scope boundaries that keep the
 lab focused on offline routing evaluation rather than live runtime ownership.
 
+## Further reading
+
+These primary sources provide background for the patterns used or discussed in the
+lab. Inclusion does not imply that this repository implements or validates every
+method or framework below, and results from its synthetic offline data do not
+establish production safety or governance.
+
+- [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
+  — the reasoning-and-action pattern behind many tool-using agents.
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification/2025-06-18)
+  — the protocol contract for exposing tools, resources, and prompts to agents.
+- [Doubly Robust Off-policy Value Evaluation for Reinforcement Learning](https://proceedings.mlr.press/v48/jiang16.html)
+  — a foundational reference for doubly robust off-policy evaluation.
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+  — practical guidance on selecting and maintaining useful agent context.
+- [NIST AI Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10)
+  — a voluntary framework for incorporating trustworthiness into AI risk management.
+
 ## Keywords
 
 Agent evaluation · offline evaluation · off-policy evaluation · counterfactual
