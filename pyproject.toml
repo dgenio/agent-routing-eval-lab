@@ -38,6 +38,11 @@ dependencies = []
 config = [
   "pyyaml>=6.0",
 ]
+# Historical source-install compatibility only; real maintainer tooling is the
+# local PEP 735 group below and is not published as wheel metadata.
+dev = []
+
+[dependency-groups]
 dev = [
   "pytest>=8.0",
   "pyyaml>=6.0",
