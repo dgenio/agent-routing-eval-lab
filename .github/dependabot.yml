@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 0
+    groups:
+      python-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    labels: [dependencies]
+    commit-message:
+      prefix: "fix(deps)"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      actions-nonmajor:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    labels: [dependencies]
+    commit-message:
+      prefix: "chore(ci)"

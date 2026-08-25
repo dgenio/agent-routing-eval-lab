@@ -16,9 +16,9 @@ help: ## Show available developer commands
 >@printf '%s\n' 'Available targets:'
 >@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: ## Install the project with development dependencies
+install: ## Install the project, config extra and local development tooling
 >$(PYTHON) -m pip install --upgrade pip
->$(PYTHON) -m pip install -e .[dev]
+>$(PYTHON) -m pip install -e ".[config]" --group dev
 
 test: ## Run the pytest suite
 >pytest
